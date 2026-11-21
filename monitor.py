@@ -24,7 +24,7 @@ import detect
 URL = ("wss://jetstream2.us-east.bsky.network/subscribe"
        "?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost")
 LIVE = "data/live"
-WINDOW_H = 24
+WINDOW_H = int(os.environ.get("WINDOW_H", 24))  # hours of data to keep
 DETECT_EVERY = 300
 MIN_POSTS = 3   # posts+reposts a user needs inside the window to be scored
 

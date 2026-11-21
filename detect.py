@@ -1,6 +1,7 @@
 """Find groups of users who act together. Works on any posts table from ingest.py or monitor.py.
 
-Usage:  uv run detect.py [posts.parquet glob] [min_posts]
+Usage:  uv run detect.py [posts.parquet glob] [min_posts] [resolution]
+        higher resolution = smaller, tighter groups (0.2 for Telegram, 5 for the all-troll X data)
 
 No text model. Signals for each pair of users, each weighted 1/(users-1) so popular
 things count less:
@@ -23,7 +24,7 @@ MIN_EVENTS = 3    # a pair needs at least this many shared keys
 WINDOW_S = 60
 
 
-def detect(src, min_posts=20):
+def detect(src, min_posts=20, resolution=0.2):
     con = duckdb.connect()
     con.sql(f"create view raw as select * from read_parquet('{src}', union_by_name=true)")
     con.sql(f"""create table p as select * from raw where user_id in
@@ -65,7 +66,7 @@ def detect(src, min_posts=20):
     iu, iv = np.searchsorted(uids, pairs.u), np.searchsorted(uids, pairs.v)
     pairs["sched"] = (M[iu] * M[iv]).sum(1)
     con.register("pairs", pairs)
-    member, cl = cluster(pairs)
+    member, cl = cluster(pairs, resolution)
     con.register("members", pd.DataFrame({"user_id": list(member), "c": list(member.values())}))
     return con, cl, member
 
@@ -129,6 +130,23 @@ def report(con, cl, member, out="data/report.html", top=30, platform_url=None, r
 
 
 def evaluate(con, cl, member):
+    cats = dict(con.sql("select user_id, any_value(category) from p group by 1 having any_value(category) is not null").fetchall()
+                if "category" in con.sql("select * from p limit 0").columns else [])
+    if cats:  # known account groups: are found groups pure? compare with random groups of the same sizes
+        users = [u for u in member if u in cats]
+        shuffled = dict(zip(users, np.random.default_rng(0).permutation([cats[u] for u in users])))
+        def purity(k, cat):
+            top, tot, hit = set(cl.index[:k]), 0, 0
+            by_c = {}
+            for u, c in member.items():
+                if c in top and u in cat:
+                    by_c.setdefault(c, []).append(cat[u])
+            for vals in by_c.values():
+                tot += len(vals); hit += max(vals.count(v) for v in set(vals))
+            return hit / max(tot, 1), tot
+        for k in sorted({10, 50, len(cl)}):
+            p, n = purity(k, cats)
+            print(f"top {k:>4} groups: {n:>5} users, purity {p:.1%} (random groups: {purity(k, shuffled)[0]:.1%})")
     lab = labels(con)
     if not lab:
         return
@@ -141,7 +159,9 @@ def evaluate(con, cl, member):
 
 if __name__ == "__main__":
     src = sys.argv[1] if len(sys.argv) > 1 else "data/posts.parquet"
-    con, cl, member = detect(src, int(sys.argv[2]) if len(sys.argv) > 2 else 20)
+    con, cl, member = detect(src, int(sys.argv[2]) if len(sys.argv) > 2 else 20,
+                            float(sys.argv[3]) if len(sys.argv) > 3 else 0.2)
     evaluate(con, cl, member)
-    report(con, cl, member)
-    print("wrote data/report.html")
+    out = src.replace("posts", "report").replace(".parquet", ".html")
+    report(con, cl, member, out=out)
+    print("wrote", out)

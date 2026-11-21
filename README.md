@@ -31,6 +31,17 @@ Users with 20 or more posts are scored. Of these, 3.1% are labeled.
 That is about 16× the base rate. The top groups also hold unlabeled networks, for example
 accounts that post emoji-prefixed template talking points, and copypasta written with mixed Latin and Cyrillic letters.
 
+## Result on X (Twitter) troll data
+
+[FiveThirtyEight russian-troll-tweets](https://github.com/fivethirtyeight/russian-troll-tweets): 2.9M tweets
+from 2,843 accounts of the Russian Internet Research Agency (IRA), each with a category
+(RightTroll, LeftTroll, NewsFeed, HashtagGamer, Fearmonger, NonEnglish, ...).
+All accounts are trolls, so the test is: do the found groups match the real categories?
+
+The found groups are **91% pure** by category, against 55% for random groups of the same sizes (resolution 5).
+Examples: one group is 79 of 80 HashtagGamer accounts, one is 104 of 104 RightTroll, one is 33 of 33 NewsFeed.
+One group of 207 mixes LeftTroll and RightTroll accounts that amplified the same content.
+
 Lift of each signal for one pair of users (both users labeled, against 0.7% for a random pair):
 the same text is 94×, the same link or tag is 9×, and the same reply targets are about 5×.
 
@@ -41,14 +52,23 @@ Needs [uv](https://docs.astral.sh/uv/).
 Telegram (offline test against labels):
 
 ```bash
-uv run ingest.py dataset_v2.csv   # CSV to data/posts.parquet (about 5 s)
-uv run detect.py                  # data/report.html (about 70 s)
+uv run ingest.py telegram dataset_v2.csv   # CSV to data/posts.parquet (about 5 s)
+uv run detect.py                           # data/report.html (about 70 s)
+```
+
+X troll data (offline test against categories):
+
+```bash
+mkdir -p data/x_ira && cd data/x_ira && for i in $(seq 1 13); do curl -sSfLO "https://raw.githubusercontent.com/fivethirtyeight/russian-troll-tweets/master/IRAhandle_tweets_$i.csv"; done && cd ../..
+uv run ingest.py x "data/x_ira/*.csv"      # data/posts_x.parquet (about 2 s)
+uv run detect.py data/posts_x.parquet 20 5 # data/report_x.html (about 5 s)
 ```
 
 Bluesky (live, free, no key):
 
 ```bash
 uv run monitor.py                 # data/live_report.html, refreshed every 5 min
+WINDOW_H=48 uv run monitor.py     # keep 48 hours of data instead of 24
 ```
 
 The monitor reads the Bluesky Jetstream firehose (about 40 posts/s) and keeps a rolling 24-hour window in `data/live/`.
