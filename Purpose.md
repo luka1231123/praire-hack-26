@@ -1,6 +1,6 @@
 # Why This Matters
 
-State actors run networks of fake accounts to spread propaganda, and they now use AI to reword each post so the network is harder to trace. This project links related accounts by their writing, even after AI rewording.
+State actors run networks of fake accounts to spread propaganda, and they now use AI to reword each post so the network is harder to trace. This project finds those networks by how the accounts behave, not by how they write, so AI rewording doesn't hide them.
 
 ## The problem is real
 - **It has changed an election.** In 2024 Romania annulled its presidential first round after intelligence linked about 25,000 coordinated TikTok accounts to a pro-Russian campaign. The candidate went from under 1% in the polls to first place.
@@ -15,12 +15,17 @@ State actors run networks of fake accounts to spread propaganda, and they now us
 **Our approach:** don't ask "was this written by AI?" Ask "are these accounts working together?"
 
 ## How we detect coordination
-Rewording can hide duplicate text, but coordinated accounts still leave other traces. We combine several signals:
-- **Writing patterns:** similar phrasing, structure, and style, even after paraphrasing
-- **Shared hashtags:** groups of accounts pushing the same hashtags, often at the same time
-- **Shared links:** accounts posting the same URLs or domains, like the fake news sites used by Doppelganger
+We use no text model. AI can rewrite the words, but operators still share behavior. We score each pair of accounts on:
+- **Same reply targets:** replying to the same messages
+- **Same timing:** posting or replying to the same thing within 60 seconds
+- **Same links and hashtags:** sharing the same URLs, `#hashtags`, `@mentions`, or reposts
+- **Same template text:** posting identical text after cleanup (case, links, digits, punctuation, emoji)
+- **Same work schedule:** similar weekly activity patterns, like the office hours that exposed Spamouflage
 
-One signal alone can be a coincidence. Several together point to a network.
+Popular links and tags count less, so only rare shared traces add up. One signal alone can be a coincidence. Several together point to a network.
+
+## It works
+On a Telegram dataset of 17.3M comments where 3.1% of active accounts are labeled propaganda accounts, the top 50 groups we found were 52.6% labeled, about 16× the base rate. The top groups also contained unlabeled networks posting template talking points.
 
 ## Why it's urgent
 Russia's Pravda network published 3.6 million articles in 2024 to seed AI chatbots, which repeated its claims about 33% of the time. Catching coordinated content early helps keep it out of AI systems too.
