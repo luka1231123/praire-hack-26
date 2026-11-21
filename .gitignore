@@ -1,2 +1,5 @@
 .DS_Store
 dataset_v2.csv
+data/
+.venv/
+__pycache__/
