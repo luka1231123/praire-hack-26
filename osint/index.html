@@ -98,6 +98,7 @@ tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel); }
 td.trace { max-width: 0; width: 46%; }
 td.trace div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .kind { font-size: 14px; color: var(--text-secondary); }
+.hint { border-bottom: 1px dotted currentColor; cursor: help; }
 .str { display: inline-block; font-size: 13px; font-weight: 600; padding: 0 6px; border-radius: 2px; border: 1px solid; }
 .str.strong { color: #a3261c; border-color: #efb7b1; background: #fdf3f2; }
 .str.moderate { color: #8a5a00; border-color: #ecd18c; background: #fff8e1; }
@@ -233,6 +234,17 @@ function known(g) {
   if (lab.length) { const n = lab.filter(m => m.label).length; return { text: `${Math.round(n / lab.length * 100)}% labeled`, title: `${n} of ${lab.length} accounts are labeled propaganda` }; }
   return null;
 }
+// Short explanations shown when hovering a column heading or a figure
+const HELP = {
+  kind: 'The topic of the group\'s posts (political, scam, porn or other), from a small language model. It describes the topic, not who runs the group.',
+  tags: 'Signs from public account facts. Red: bot signs such as new accounts, same names or template bios. Green: signs of a real community.',
+  accounts: 'Number of accounts in the group.',
+  strength: 'The group\'s rank among all groups found, by shared content per member. Top 1% is red, top 5% yellow. A ranking, not a probability: a lower group can still be a real network.',
+  known: 'What the answer key says, where the data has one. On X: the share of the group with its most common troll role.',
+  schedule: 'How alike the members\' weekly posting hours are, from 0 (nothing alike) to 1 (identical). Real people keep different hours; operators often work the same shift.',
+  trace: 'The thing the most members share: the same text, link, hashtag, mention, repost or reply target. ×N is how many members share it.',
+};
+const hint = (key, text, cls = '') => `<span class="hint ${cls}" tabindex="0" data-tip="${esc(HELP[key])}">${text}</span>`;
 const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join('');
 const setFilters = html => $('filters').innerHTML = html;
 
@@ -246,7 +258,7 @@ function viewList() {
   $('app').innerHTML = `${summary([[num(D.posts), 'posts'], [num(D.active_users), 'accounts scored'], [num(D.n_groups), 'groups found'],
       [`${day(D.start)} – ${day(D.end)}`, 'time span']])}
     <section class="panel"><div class="ghead"><div><h2>Groups</h2><p class="muted" style="font-size:14px;margin:0">${esc(ABOUT[name] || '')} Ranked by shared content per member. Strength is a group's rank among all groups found, not a probability. Select a group to see its evidence.</p></div></div>
-      <div class="scroll"><table><thead><tr><th class="n">#</th><th>Kind</th>${tags.length ? '<th>Tags</th>' : ''}<th class="n">Accounts</th><th>Strength</th>${hasKnown ? '<th>Known</th>' : ''}<th class="n">Schedule</th><th>Top shared trace</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="scroll"><table><thead><tr><th class="n">#</th><th>${hint('kind', 'Kind')}</th>${tags.length ? `<th>${hint('tags', 'Tags')}</th>` : ''}<th class="n">${hint('accounts', 'Accounts')}</th><th>${hint('strength', 'Strength')}</th>${hasKnown ? `<th>${hint('known', 'Known')}</th>` : ''}<th class="n">${hint('schedule', 'Schedule')}</th><th>${hint('trace', 'Top shared trace')}</th></tr></thead><tbody id="rows"></tbody></table></div>
       <div class="pager" id="pager"></div></section>
     <p class="muted" style="font-size:13px">Showing the top ${D.groups.length} of ${num(D.n_groups)} groups. Data made ${esc(D.generated)}.</p>`;
   const draw = () => {
@@ -278,9 +290,9 @@ function viewGroup(n) {
     <div class="ghead"><div><h1>Group ${g.g}</h1><p>${esc(g.why)}</p>
       <div class="row" style="margin-top:8px">${g.kind ? `<span class="pill">${esc(g.kind)}</span>` : ''}${tagPills(g.tags)}${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">topic: ${esc(shares)}</span>` : ''}</div></div>
       <div class="exports">Export <button data-x="members">Members CSV</button><button data-x="evidence">Evidence CSV</button><button data-x="graphml">GraphML</button><button data-x="json">JSON</button></div></div>
-    ${summary([[g.size, 'accounts'], [`<span title="Raw score ${g.score.toFixed(1)}">${topPct(g)}</span>`, `rank ${g.g} of ${num(D.n_groups)} groups`],
-      ...(known(g) ? [[esc(known(g).text), 'answer key: ' + (g.members.some(m => m.category) ? 'main troll role' : 'labeled propaganda')]] : []),
-      [g.sched_sim.toFixed(2), 'schedule match'], [g.keys.length, 'shared traces']])}
+    ${summary([[g.size, 'accounts'], [`<span title="Raw score ${g.score.toFixed(1)}">${topPct(g)}</span>`, hint('strength', `strength, rank ${g.g} of ${num(D.n_groups)}`)],
+      ...(known(g) ? [[esc(known(g).text), hint('known', 'answer key: ' + (g.members.some(m => m.category) ? 'main troll role' : 'labeled propaganda'))]] : []),
+      [g.sched_sim.toFixed(2), hint('schedule', 'schedule match')], [g.keys.length, hint('trace', 'shared traces')]])}
     ${panel('Network', 'Accounts linked by the traces they share. Thicker lines share more. Hover an account, click to open it.', `<div class="legend" id="netlegend"></div><div class="net" id="net"></div>`)}
     ${panel('Evidence', 'Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used the trace.',
       `<div id="keys">${g.keys.slice(0, 10).map(keyBlock).join('')}</div>${more('morekeys', Math.min(g.keys.length, 60) - 10, 'traces')}${g.keys.length > 60 ? `<p class="muted" style="font-size:13px">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}`)}
@@ -502,9 +514,11 @@ async function route() {
 $('ds').onchange = () => location.hash = '#/' + enc($('ds').value);
 $('q').onkeydown = e => { if (e.key === 'Enter' && $('q').value.trim()) location.hash = `#/${enc(name)}/s/${enc($('q').value.trim())}`; };
 const T = $('tip');
-document.addEventListener('mousemove', e => { const h = e.target.closest('[data-tip]');
-  if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
-  const r = T.getBoundingClientRect(); T.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, e.clientY + 14) + 'px'; });
+const showTip = (h, x, y) => { if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
+  const r = T.getBoundingClientRect(); T.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x + 14)) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, y + 14) + 'px'; };
+document.addEventListener('mousemove', e => showTip(e.target.closest('[data-tip]'), e.clientX, e.clientY));
+document.addEventListener('focusin', e => { const h = e.target.closest('[data-tip]'); if (!h) return showTip(null); const r = h.getBoundingClientRect(); showTip(h, r.left, r.bottom); });
+document.addEventListener('focusout', () => showTip(null));
 // the project pages exist only on the public site (docs/); hide their links elsewhere
 fetch('method.html', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; }).catch(() => document.querySelectorAll('.proj').forEach(a => a.remove()));
 addEventListener('hashchange', route);
