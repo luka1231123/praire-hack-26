@@ -36,10 +36,10 @@ a { color: var(--text-primary); text-underline-offset: 3px; text-decoration-colo
 
 /* header */
 header { position: sticky; top: 0; z-index: 20; background: rgba(20,18,26,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
-header .wrap { display: flex; align-items: center; gap: 32px; height: 58px; }
+header .wrap { display: flex; align-items: center; gap: 24px; height: 58px; }
 .brand { font-weight: 800; letter-spacing: -.02em; text-decoration: none; font-size: 17px; white-space: nowrap; }
-nav { display: flex; gap: 22px; flex: 1; overflow-x: auto; scrollbar-width: none; }
-nav a { color: var(--text-muted); text-decoration: none; font-size: 15px; white-space: nowrap; padding: 4px 0; border-bottom: 2px solid transparent; }
+nav { display: flex; gap: 18px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+nav a { color: var(--text-muted); text-decoration: none; font-size: 14px; white-space: nowrap; padding: 4px 0; border-bottom: 2px solid transparent; }
 nav a:hover { color: var(--text-primary); }
 nav a.on { color: var(--text-primary); border-bottom-color: var(--series-1); }
 .picker { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); white-space: nowrap; }
@@ -47,6 +47,7 @@ select { background: var(--panel); color: var(--text-primary); border: 1px solid
   font: inherit; font-size: 14px; cursor: pointer; appearance: none;
   background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
   background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+@media (max-width: 1060px) { .picker > span { display: none; } }
 @media (max-width: 900px) { nav { display: none; } }
 
 /* hero */
@@ -141,6 +142,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .
 table.groups { width: 100%; border-collapse: collapse; font-size: 15px; }
 table.groups th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 14px; }
 table.groups td { padding: 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
+table.groups td:last-child { overflow-wrap: anywhere; }
 table.groups td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); white-space: nowrap; }
 table.groups .kind { display: inline-block; min-width: 46px; font-size: 13px; color: var(--text-muted); }
 .tablewrap { overflow-x: auto; }
@@ -177,7 +179,7 @@ footer a { color: var(--text-secondary); }
     <a href="./">Investigate</a><a href="#problem">Problem</a><a href="#method">Method</a><a href="#data">Data</a><a href="#signals">Signals</a>
     <a href="#results">Results</a><a href="#networks">Networks</a><a href="#about">About</a>
   </nav>
-  <label class="picker">Dataset <select id="ds" aria-label="Dataset shown on this page"></select></label>
+  <label class="picker"><span>Dataset</span> <select id="ds" aria-label="Dataset shown on this page"></select></label>
 </div></header>
 
 <main id="top" class="wrap">
