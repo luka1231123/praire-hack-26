@@ -73,14 +73,18 @@ WINDOW_H=48 uv run monitor.py     # keep 48 hours of data instead of 24
 
 The monitor reads the Bluesky Jetstream firehose (about 40 posts/s) and keeps a rolling 24-hour window in `data/live/`.
 
-## Slides
+## Website
 
-`docs/` holds the presentation site (GitHub Pages: Settings → Pages → main, `/docs`).
-`docs/data.js` starts with the numbers above; to fill every chart from the data, run:
+`docs/` is the project website (GitHub Pages: Settings → Pages → main, `/docs`). A dropdown switches
+between datasets. `docs/data.js` starts with the numbers above; to fill every chart, export each dataset:
 
 ```bash
-uv run export_site.py                      # docs/data.js from data/posts.parquet (no user IDs)
+uv run export_site.py telegram data/posts.parquet 20 0.2
+uv run export_site.py x data/posts_x.parquet 20 5
+uv run export_site.py bluesky "data/live/*.parquet" 3     # optional, from monitor.py
 ```
+
+Only summary numbers are written (no user IDs; evidence text is cut to 120 characters).
 
 ## Dataset
 
