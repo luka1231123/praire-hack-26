@@ -10,6 +10,7 @@ things count less:
   item  - shared the same link, #hashtag or @mention
   dup   - posted the same text after normalizing (case, links, digits, punctuation, emoji)
   sched - cosine of 168-hour weekly activity profiles (multiplies the others)
+After detection, kinds() labels each top group political / scam / porn / other with a small embedding model.
 """
 import html
 import sys
@@ -98,12 +99,77 @@ def evidence(con, c, k=3):
                        group by 1, 2 order by 3 desc limit {k}""").fetchall()
 
 
+# Group type: each sampled post votes for the class of its closest prototype sentence (only when it is clearly
+# closer to one class than to the others). A group is the class with the largest vote share, if that share is
+# at least MIN_SHARE; links to porn or scam hosts add to the share. The text gives the topic only: a "political"
+# group can be real activists. Evidence for a state operator is the schedule signal and the labels.
+PROTOTYPES = {
+    "political": ["elections, the government, the president and parliament", "war in Ukraine, NATO, Russia, sanctions",
+                  "immigrants, the border, police, protests, the left and the right", "Trump, Hillary, Obama, Democrats, Republicans",
+                  "racism, black lives matter, police shooting, civil rights", "guns, abortion, taxes, the media lies",
+                  "выборы, власть, президент, правительство", "война, НАТО, Украина, Запад, санкции, Путин",
+                  "либералы, оппозиция, Навальный, Зеленский, ВСУ"],
+    "scam": ["crypto giveaway, send coins and double your money", "invest now, guaranteed profit, trading signals, DM me",
+             "you won a prize, claim your reward, click the link", "free followers, promo code, buy now, limited offer",
+             "earn money from home, passive income, join my team", "криптовалюта, заработок, инвестиции, пиши в личку",
+             "казино, ставки, бонус за регистрацию, выигрыш", "deal, discount price, affiliate link, buy it on Amazon",
+             "please help my family, we are starving, donate to our gofundme, every dollar helps"],
+    "porn": ["hot girls, nudes, link in bio, onlyfans", "sexy content, horny, 18+, adult videos, cam girls",
+             "lonely singles near you want to meet tonight", "big cock, daddy, cum, cuck, sweet cheeks, bulge",
+             "интим, знакомства, голые девушки 18+", "야동, 성인, 무료 영상, 유부녀, 자위", "エロ動画, 裏垢, 無料, 18禁"],
+    "other": ["good morning, have a nice day, love this", "music, art, games, books, movies, sports",
+              "my cat, food, weather, coffee, work today", "lol this is so funny, same, me too",
+              "local news: accident, fire, weather, traffic", "football match, goal, the team wins the league",
+              "привет, как дела, спасибо, хорошего дня", "футбол, матч, гол, команда выиграла"],
+}
+DOMAINS = {
+    "porn": ["onlyfans", "fansly", "pornhub", "xvideos", "chaturbate", "stripchat", "fanvue", "manyvids", "loyalfans"],
+    "scam": ["airdrop", "claim", "bonus", "casino", "1xbet", "betway", "promo", "giveaway", "reward", "gofundme", "amzn.to"],
+}  # matched against the link host only; shorteners and link-in-bio hosts are left out, everyone uses them
+MARGIN = 0.05     # a post votes only if its best class beats the second class by this cosine
+MIN_SHARE = 0.15  # below this share for every flagged class, the group is "other"
+
+
+def kinds(con, cl, top=200, per_group=200):
+    """Return {group: (kind, {class: vote share})} for the top groups."""
+    from model2vec import StaticModel  # lazy: detect works without it
+    ids = ",".join(str(c) for c in cl.index[:top])
+    if not ids:
+        return {}
+    model = StaticModel.from_pretrained("minishlab/potion-multilingual-128M")
+    txt = con.sql(f"""select c, text from (select m.c, p.text, row_number() over (partition by m.c order by hash(p.post_id)) r
+                      from p join members m using (user_id) where m.c in ({ids}) and length(p.text) >= 20) where r <= {per_group}""").df()
+    url = con.sql(f"""select m.c, string_agg(it, ' ') urls from (select user_id, unnest(items) it from p) join members m using (user_id)
+                      where m.c in ({ids}) and starts_with(it, 'url:') group by 1""").df().set_index("c").urls
+
+    def unit(x):
+        return x / np.maximum(np.linalg.norm(x, axis=-1, keepdims=True), 1e-9)
+    names = list(PROTOTYPES)
+    protos = [unit(model.encode(PROTOTYPES[k])) for k in names]
+    E = unit(model.encode(txt.text.tolist())) if len(txt) else np.zeros((0, protos[0].shape[1]))
+    S = np.stack([(E @ p.T).max(1) for p in protos], 1)  # best prototype sentence per class
+    top2 = np.sort(S, 1)
+    vote = np.where(top2[:, -1] - top2[:, -2] >= MARGIN, S.argmax(1), names.index("other"))
+    out = {}
+    for c in cl.index[:top]:
+        v = vote[(txt.c == c).to_numpy()]
+        s = dict(zip(names, (np.bincount(v, minlength=len(names)) / max(len(v), 1)).round(2)))
+        links = url.get(c, "").split()
+        for k, doms in DOMAINS.items():
+            if links:
+                s[k] = round(s[k] + sum(any(d in u[4:].split("/")[0] for d in doms) for u in links) / len(links), 2)
+        flag = max((k for k in names if k != "other"), key=s.get)
+        out[c] = (flag if s[flag] >= MIN_SHARE else "other", s)
+    return out
+
+
 def labels(con):
     return dict(con.sql("select user_id, any_value(label) from p group by 1 having any_value(label) is not null").fetchall())
 
 
-def report(con, cl, member, out="data/report.html", top=30, platform_url=None, refresh=None):
+def report(con, cl, member, out="data/report.html", top=30, platform_url=None, refresh=None, kd=None):
     lab = labels(con)
+    kd = kd if kd is not None else kinds(con, cl, top)
     by_c = {}
     for u, c in member.items():
         by_c.setdefault(c, []).append(u)
@@ -117,7 +183,9 @@ def report(con, cl, member, out="data/report.html", top=30, platform_url=None, r
         more = f" +{len(users) - 15}" if len(users) > 15 else ""
         lab_txt = f"{sum(lab.get(u, False) for u in users)}/{len(users)}" if lab else ""
         ev = "<br>".join(f"<b>{k}</b> ×{n}: {html.escape((s or key)[:140])}" for k, key, n, s in evidence(con, c))
-        rows.append(f"<tr><td>{r['size']}</td><td>{r.score:.2f}</td><td>{r.density:.2f}</td><td>{r.sched:.2f}</td>"
+        kind, ks = kd.get(c, ("", {}))
+        ktip = html.escape(" ".join(f"{k}={v:.2f}" for k, v in ks.items()))
+        rows.append(f"<tr><td title=\"{ktip}\">{kind}</td><td>{r['size']}</td><td>{r.score:.2f}</td><td>{r.density:.2f}</td><td>{r.sched:.2f}</td>"
                     f"<td>{r.tgt:.1f} / {r.fast:.1f} / {r["item"]:.1f} / {r.dup:.1f}</td><td>{lab_txt}</td>"
                     f"<td>{links}{more}</td><td>{ev}</td></tr>")
     meta = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
@@ -125,7 +193,7 @@ def report(con, cl, member, out="data/report.html", top=30, platform_url=None, r
     open(out, "w").write(f"""<!doctype html><meta charset="utf-8">{meta}<title>Coordination report</title>
 <style>body{{font:14px system-ui;margin:24px}}table{{border-collapse:collapse}}td,th{{border:1px solid #ccc;padding:4px 8px;vertical-align:top}}th{{background:#eee}}</style>
 <h2>Coordinated groups</h2><p>{stats[0]:,} posts from {stats[1]:,} active users, {stats[2]} to {stats[3]}. {len(cl)} groups found.</p>
-<table><tr><th>size</th><th>score</th><th>density</th><th>schedule</th><th>targets / fast / items / dup</th><th>labeled</th><th>members</th><th>top shared evidence</th></tr>
+<table><tr><th>kind</th><th>size</th><th>score</th><th>density</th><th>schedule</th><th>targets / fast / items / dup</th><th>labeled</th><th>members</th><th>top shared evidence</th></tr>
 {''.join(rows)}</table>""")
 
 
@@ -157,11 +225,23 @@ def evaluate(con, cl, member):
         print(f"top {k:>3} groups: {len(users):>6} users, {np.mean([lab.get(u, False) for u in users]):.1%} labeled")
 
 
+def kind_summary(con, member, kd):
+    """Users per group kind, split by known category or label when the data has one."""
+    cols = con.sql("select * from p limit 0").columns
+    col = "category" if "category" in cols and con.sql("select count(category) from p").fetchall()[0][0] else "label"
+    truth = dict(con.sql(f"select user_id, any_value({col})::varchar from p group by 1").fetchall())
+    df = pd.DataFrame([(kd[c][0], truth.get(u)) for u, c in member.items() if c in kd], columns=["kind", col])
+    with pd.option_context("display.width", 200, "display.max_columns", 20):
+        print(pd.crosstab(df.kind, df[col].fillna("-"), margins=True))
+
+
 if __name__ == "__main__":
     src = sys.argv[1] if len(sys.argv) > 1 else "data/posts.parquet"
     con, cl, member = detect(src, int(sys.argv[2]) if len(sys.argv) > 2 else 20,
                             float(sys.argv[3]) if len(sys.argv) > 3 else 0.2)
     evaluate(con, cl, member)
     out = src.replace("posts", "report").replace(".parquet", ".html")
-    report(con, cl, member, out=out)
+    kd = kinds(con, cl)
+    kind_summary(con, member, kd)
+    report(con, cl, member, out=out, kd=kd)
     print("wrote", out)

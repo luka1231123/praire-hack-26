@@ -1,7 +1,7 @@
 # praire-hack-26
 
 Finds groups of accounts that act together (troll farms, state operators, spam networks).
-It uses no text model. AI can rewrite the words, but operators still share **behavior**:
+Detection uses no text model. AI can rewrite the words, but operators still share **behavior**:
 the same reply targets, the same timing, the same links and hashtags, the same template
 text, and the same work schedule.
 
@@ -15,7 +15,29 @@ text, and the same work schedule.
    - `fast`: the same key within 60 s
    - `sched`: similar weekly activity pattern (168 hour buckets)
 3. Leiden clustering finds tight groups. Groups are ranked by shared content per member.
-4. An HTML report lists each group with members and its top shared evidence.
+4. Each group gets a **kind**: `political`, `scam`, `porn` or `other` (see below).
+5. An HTML report lists each group with its kind, members and top shared evidence.
+
+## Group kind
+
+Detection finds all coordinated groups, so spam networks come out next to state operators.
+A small multilingual embedding model ([model2vec](https://github.com/MinishLab/model2vec) `potion-multilingual-128M`, numpy only)
+sorts them. It runs only after detection, on up to 200 posts per group.
+
+- Each post votes for the class of its closest prototype sentence (`PROTOTYPES` in `detect.py`).
+  A post votes only when one class is clearly closest (cosine margin 0.05).
+- Links to porn hosts (onlyfans, fansly, ...) or scam hosts (casino, airdrop, gofundme, ...) add to that class.
+- The group kind is the flagged class with the largest share, if the share is 15% or more. Else it is `other`.
+- Hover the kind cell in the report to see the vote shares.
+
+The kind tells the topic only. A `political` group can be real activists. Evidence for a state operator
+is the schedule signal and the labels. To add a class or fix a miss, add a prototype sentence.
+
+| Data      | Result |
+|-----------|--------|
+| Telegram  | 1,033 of 1,035 labeled propaganda users are in `political` groups. `other` groups are 0.4% labeled. |
+| X (IRA)   | 1,563 of 1,762 troll users are `political`. 79 of 83 HashtagGamer (word games) are `other`. |
+| Bluesky   | Finds porn, Korean porn spam, donation-begging spam and affiliate spam. Errors: flight-tracker bots as `scam`, webcam feeds as `porn`. |
 
 ## Result on the Telegram dataset
 

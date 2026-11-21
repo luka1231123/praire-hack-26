@@ -2,4 +2,12 @@
 name = "praire"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = ["duckdb", "pandas", "pyarrow", "numpy", "python-igraph", "websockets"]
+dependencies = [
+    "duckdb",
+    "pandas",
+    "pyarrow",
+    "numpy",
+    "python-igraph",
+    "websockets",
+    "model2vec>=0.10.0",
+]
