@@ -154,7 +154,8 @@ ol { padding-left: 22px; } ol li { margin-bottom: 6px; color: var(--text-seconda
     <section id="read">
       <h2>Reading a group</h2>
       <dl>
-        <dt>Score</dt><dd>Shared content per member. Higher means more rare traces in common.</dd>
+        <dt>Strength</dt><dd>A group's rank among all groups found in that dataset, such as "Top 2%". The top 1% is marked red and the top 5% yellow. It's a ranking, not a probability: the tool can't say how likely a group is to be fake, and a group lower on the list can still be a real network. Hover it for the raw score (shared content per member).</dd>
+        <dt>Known</dt><dd>Only where a dataset has an answer key. On X, the share of the group's accounts with its most common troll role. On Telegram, the share labeled as propaganda. These are measured, not predicted.</dd>
         <dt>Schedule match</dt><dd>How alike members' weekly activity is, from 0 to 1.</dd>
         <dt>Kind</dt><dd>The group's topic (political, scam, porn or other), from a small multilingual model that compares sampled posts with example sentences. It describes the topic, not who runs the group.</dd>
         <dt>Bot signs</dt><dd>Bluesky only, from public account facts: <i>same-name</i>, <i>new-accounts</i>, <i>template-bio</i>, <i>blank-profiles</i>, <i>gone-accounts</i>, <i>high-volume</i> (young, many posts a day, few followers), <i>own-domain</i> (links go to a site almost nobody else links) and <i>no-sleep</i> (no quiet hours). Three or more, without disclosure, marks a group <i>hidden</i> and ranks it first.</dd>

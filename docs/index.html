@@ -97,7 +97,11 @@ footer { padding: 24px 0 40px; font-size: 14px; color: var(--text-muted); border
 tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel); }
 td.trace { max-width: 0; width: 46%; }
 td.trace div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.kind { font-size: 13px; color: var(--text-secondary); }
+.kind { font-size: 14px; color: var(--text-secondary); }
+.str { display: inline-block; font-size: 13px; font-weight: 600; padding: 0 6px; border-radius: 2px; border: 1px solid; }
+.str.strong { color: #a3261c; border-color: #efb7b1; background: #fdf3f2; }
+.str.moderate { color: #8a5a00; border-color: #ecd18c; background: #fff8e1; }
+.str.weak { color: #4a5059; border-color: transparent; background: none; font-weight: 400; padding: 0; }
 .pager { display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding: 12px 0 0; font-size: 13px; color: var(--text-muted); }
 .pager button { padding: 5px 12px; }
 .pager button[disabled] { opacity: .4; cursor: default; }
@@ -214,6 +218,21 @@ const ABOUT = { bluesky: 'Posts from the last 24 hours of the public Bluesky fir
 const panel = (title, sub, body) => `<section class="panel"><h2>${title}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}${body}</section>`;
 const crumb = (...links) => `<p class="crumb"><a href="#/${enc(name)}">All groups</a>${links.map(l => ' / ' + l).join('')}</p>`;
 const summary = items => `<div class="summary">${items.map(([v, l]) => `<div><b>${v}</b>${l}</div>`).join('')}</div>`;
+// Strength: the group's rank among ALL groups found (groups are sorted by score, so rank g.g of n_groups is exact).
+// Shown as "Top X%" (rank, not a probability); top 1% and top 5% are highlighted. The raw score stays in the tooltip and exports.
+const pctAbove = g => (D.n_groups - g.g) / D.n_groups;
+const tier = g => { const p = pctAbove(g); return p >= .99 ? 'strong' : p >= .95 ? 'moderate' : 'weak'; };
+const topPct = g => { const t = (g.g / D.n_groups) * 100; return 'Top ' + (t < 1 ? (t < .1 ? '0.1' : t.toFixed(1)) : Math.ceil(t)) + '%'; };
+const strengthCell = g => `<span class="str ${tier(g)}" title="Rank ${g.g} of ${num(D.n_groups)} groups found (raw score ${g.score.toFixed(1)}). A ranking, not a probability.">${topPct(g)}</span>`;
+// What the answer key says about a group, where the data has one (X: troll role; Telegram: propaganda label)
+function known(g) {
+  const cats = g.members.map(m => m.category).filter(Boolean);
+  if (cats.length) { const c = {}; cats.forEach(x => c[x] = (c[x] || 0) + 1); const [best, n] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+    return { text: `${best} ${Math.round(n / cats.length * 100)}%`, title: `${n} of ${cats.length} accounts with a known role are ${best}` }; }
+  const lab = g.members.filter(m => typeof m.label === 'boolean');
+  if (lab.length) { const n = lab.filter(m => m.label).length; return { text: `${Math.round(n / lab.length * 100)}% labeled`, title: `${n} of ${lab.length} accounts are labeled propaganda` }; }
+  return null;
+}
 const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join('');
 const setFilters = html => $('filters').innerHTML = html;
 
@@ -221,12 +240,13 @@ const setFilters = html => $('filters').innerHTML = html;
 function viewList() {
   const kinds = [...new Set(D.groups.map(g => g.kind).filter(Boolean))];
   const tags = [...new Set(D.groups.flatMap(g => g.tags))];
+  const hasKnown = D.groups.some(g => known(g));
   const sel = (id, label, vals) => vals.length ? `<label>${label} <select id="${id}"><option value="">All</option>${vals.map(v => `<option>${esc(v)}</option>`).join('')}</select></label>` : '';
   setFilters(sel('fk', 'Kind', kinds) + sel('ft', 'Tag', tags));
   $('app').innerHTML = `${summary([[num(D.posts), 'posts'], [num(D.active_users), 'accounts scored'], [num(D.n_groups), 'groups found'],
       [`${day(D.start)} – ${day(D.end)}`, 'time span']])}
-    <section class="panel"><div class="ghead"><div><h2>Groups</h2><p class="muted" style="font-size:14px;margin:0">${esc(ABOUT[name] || '')} Ranked by shared content per member. Select a group to see its evidence.</p></div></div>
-      <div class="scroll"><table><thead><tr><th class="n">#</th><th>Kind</th>${tags.length ? '<th>Tags</th>' : ''}<th class="n">Accounts</th><th class="n">Score</th><th class="n">Schedule</th><th>Top shared trace</th></tr></thead><tbody id="rows"></tbody></table></div>
+    <section class="panel"><div class="ghead"><div><h2>Groups</h2><p class="muted" style="font-size:14px;margin:0">${esc(ABOUT[name] || '')} Ranked by shared content per member. Strength is a group's rank among all groups found, not a probability. Select a group to see its evidence.</p></div></div>
+      <div class="scroll"><table><thead><tr><th class="n">#</th><th>Kind</th>${tags.length ? '<th>Tags</th>' : ''}<th class="n">Accounts</th><th>Strength</th>${hasKnown ? '<th>Known</th>' : ''}<th class="n">Schedule</th><th>Top shared trace</th></tr></thead><tbody id="rows"></tbody></table></div>
       <div class="pager" id="pager"></div></section>
     <p class="muted" style="font-size:13px">Showing the top ${D.groups.length} of ${num(D.n_groups)} groups. Data made ${esc(D.generated)}.</p>`;
   const draw = () => {
@@ -235,9 +255,9 @@ function viewList() {
     const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE)); page = Math.min(page, pages - 1);
     $('rows').innerHTML = rows.slice(page * PER_PAGE, (page + 1) * PER_PAGE).map(g => { const k = g.keys[0], i = k && keyInfo(k);
       return `<tr class="click" data-g="${g.g}" tabindex="0"><td class="n">${g.g}</td><td class="kind">${esc(g.kind || '')}</td>${tags.length ? `<td>${tagPills(g.tags)}</td>` : ''}
-      <td class="n">${g.size}</td><td class="n">${g.score.toFixed(1)}</td><td class="n">${g.sched_sim.toFixed(2)}</td>
+      <td class="n">${g.size}</td><td style="white-space:nowrap">${strengthCell(g)}</td>${hasKnown ? `<td title="${esc(known(g)?.title || '')}">${esc(known(g)?.text || '')}</td>` : ''}<td class="n">${g.sched_sim.toFixed(2)}</td>
       <td class="trace">${i ? `<div title="${esc(i.text.slice(0, 300))}"><span class="muted">${esc(i.label)} ×${k.users}</span> ${esc(i.text.slice(0, 160))}</div>` : ''}</td></tr>`; }).join('')
-      || '<tr><td colspan="7" class="muted">No groups match these filters.</td></tr>';
+      || '<tr><td colspan="8" class="muted">No groups match these filters.</td></tr>';
     $('pager').innerHTML = `<span>${rows.length ? page * PER_PAGE + 1 : 0}–${Math.min(rows.length, (page + 1) * PER_PAGE)} of ${rows.length}</span>
       <button id="prev" ${page ? '' : 'disabled'}>Previous</button><button id="next" ${page < pages - 1 ? '' : 'disabled'}>Next</button>`;
     $('prev').onclick = () => { page--; draw(); }; $('next').onclick = () => { page++; draw(); };
@@ -258,7 +278,9 @@ function viewGroup(n) {
     <div class="ghead"><div><h1>Group ${g.g}</h1><p>${esc(g.why)}</p>
       <div class="row" style="margin-top:8px">${g.kind ? `<span class="pill">${esc(g.kind)}</span>` : ''}${tagPills(g.tags)}${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">topic: ${esc(shares)}</span>` : ''}</div></div>
       <div class="exports">Export <button data-x="members">Members CSV</button><button data-x="evidence">Evidence CSV</button><button data-x="graphml">GraphML</button><button data-x="json">JSON</button></div></div>
-    ${summary([[g.size, 'accounts'], [g.score.toFixed(1), 'score'], [g.sched_sim.toFixed(2), 'schedule match'], [g.keys.length, 'shared traces']])}
+    ${summary([[g.size, 'accounts'], [`<span title="Raw score ${g.score.toFixed(1)}">${topPct(g)}</span>`, `rank ${g.g} of ${num(D.n_groups)} groups`],
+      ...(known(g) ? [[esc(known(g).text), 'answer key: ' + (g.members.some(m => m.category) ? 'main troll role' : 'labeled propaganda')]] : []),
+      [g.sched_sim.toFixed(2), 'schedule match'], [g.keys.length, 'shared traces']])}
     ${panel('Network', 'Accounts linked by the traces they share. Thicker lines share more. Hover an account, click to open it.', `<div class="legend" id="netlegend"></div><div class="net" id="net"></div>`)}
     ${panel('Evidence', 'Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used the trace.',
       `<div id="keys">${g.keys.slice(0, 10).map(keyBlock).join('')}</div>${more('morekeys', Math.min(g.keys.length, 60) - 10, 'traces')}${g.keys.length > 60 ? `<p class="muted" style="font-size:13px">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}`)}
