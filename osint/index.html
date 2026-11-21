@@ -88,6 +88,44 @@ footer { padding: 24px 0 40px; font-size: 14px; color: var(--text-muted); border
 #tip .m { color: var(--text-muted); }
 
 /* explore page */
+.intro { padding: 8px 0 18px; }
+.intro p { font-size: 17px; max-width: 46em; }
+.intro p.big { font-size: 20px; color: var(--text-primary); }
+.how { display: flex; gap: 24px; flex-wrap: wrap; padding: 0; margin: 14px 0 0; list-style: none; counter-reset: h; font-size: 15px; color: var(--text-secondary); }
+.how li { counter-increment: h; flex: 1; min-width: 200px; }
+.how li::before { content: counter(h); display: inline-block; width: 22px; height: 22px; border-radius: 50%; background: var(--navy); color: #fff; text-align: center; font-size: 13px; line-height: 22px; margin-right: 8px; font-weight: 700; }
+.card { border: 1px solid var(--rule); border-radius: 4px; padding: 16px 18px; margin-bottom: 12px; }
+.cardtop { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.cardtop h2 { font-size: 20px; margin: 0; }
+.cardtop h2 a { color: var(--text-primary); text-decoration: none; }
+.cardtop h2 a:hover { text-decoration: underline; }
+.rank { color: var(--text-muted); font-size: 14px; font-weight: 600; }
+.topic { font-size: 13px; color: var(--text-secondary); background: var(--panel-2); padding: 1px 8px; border-radius: 10px; }
+.say { font-size: 16px; color: var(--text-primary); margin: 8px 0 10px; word-break: break-word; }
+.say q, .big q, .proofs q { font-style: italic; }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.chip { font-size: 14px; padding: 2px 10px; border-radius: 12px; background: #eaf2fc; color: #174a86; cursor: help; }
+.chip.real { background: #eaf6ee; color: #1d6b3a; }
+.meterrow { display: flex; align-items: center; gap: 12px; font-size: 15px; color: var(--text-secondary); cursor: help; margin: 6px 0; }
+.meter { width: 160px; height: 10px; background: var(--panel-2); border-radius: 5px; overflow: hidden; flex: none; }
+.meter i { display: block; height: 100%; background: var(--series-2); }
+.answer { font-size: 15px; color: #1d6b3a; margin: 6px 0 0; }
+.open { display: inline-block; margin-top: 10px; font-weight: 600; }
+.checks, .proofs { list-style: none; padding: 0; margin: 0; }
+.checks li { display: grid; grid-template-columns: 28px 220px minmax(0, 1fr); gap: 4px 10px; padding: 10px 0; border-bottom: 1px solid var(--grid); align-items: baseline; }
+.checks .tick { width: 22px; height: 22px; border-radius: 50%; background: #eaf2fc; color: #174a86; text-align: center; line-height: 22px; font-weight: 700; }
+.checks li.real .tick { background: #eaf6ee; color: #1d6b3a; }
+.checks span:last-child { color: var(--text-secondary); }
+@media (max-width: 700px) { .checks li { grid-template-columns: 28px 1fr; } .checks span:last-child { grid-column: 2; } }
+.proofs li { padding: 10px 0; border-bottom: 1px solid var(--grid); font-size: 16px; word-break: break-word; }
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 3px; height: 120px; align-items: end; border-bottom: 1px solid var(--rule); max-width: 760px; }
+.hours div { height: 100%; display: flex; align-items: flex-end; cursor: help; }
+.hours i { display: block; width: 100%; background: var(--series-1); border-radius: 2px 2px 0 0; }
+.hourlbl { position: relative; height: 22px; font-size: 13px; color: var(--text-muted); max-width: 760px; }
+.hourlbl span { position: absolute; top: 4px; }
+details.expert { margin-top: 24px; border: 1px solid var(--rule); border-radius: 4px; padding: 12px 16px; }
+details.expert > summary { font-size: 16px; font-weight: 600; color: var(--link); }
+details.expert[open] > summary { margin-bottom: 12px; }
 .crumb { font-size: 14px; color: var(--text-muted); margin: 18px 0 10px; }
 .crumb a { color: var(--text-muted); }
 .ghead { display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px; }
@@ -136,10 +174,10 @@ svg text { fill: var(--text-muted); font-size: 11px; font-family: var(--font); }
 <div class="wrap">
   <div class="controls">
     <label>Dataset <select id="ds" aria-label="Dataset"></select></label>
-    <label class="grow">Search <input id="q" type="search" placeholder="Handle, DID, link, #tag or text, then Enter"></label>
+    <label class="grow">Find an account or word <input id="q" type="search" placeholder="Type a name, link or #hashtag and press Enter"></label>
     <span id="filters" style="display:contents"></span>
   </div>
-  <div class="notice"><b>Behavior, not opinions.</b> A group can be a real community. Open each post at its source and decide yourself.</div>
+  <div class="notice"><b>Copying isn't always bad.</b> Fans, news feeds and friends can act alike too. Look at the proof and decide for yourself.</div>
 </div>
 <main class="wrap" id="app"><p class="muted">Loading…</p></main>
 <footer><div class="wrap">PropNET, a prairehack26 project. Public posts only. <a class="proj" href="method.html">How it works</a></div></footer>
@@ -213,9 +251,9 @@ function index() {
 }
 
 // ---------- layout helpers ----------
-const NAMES = { bluesky: 'Bluesky: last 24 hours, live', iowa: 'Bluesky: Iowa election accounts', x: 'X: Russian IRA trolls' };
-const ABOUT = { bluesky: 'Posts from the last 24 hours of the public Bluesky firehose.',
-  iowa: 'Bluesky accounts around the Iowa election, Oct 27 – Nov 10 2026.', x: 'Russian Internet Research Agency troll accounts on X, 2012–2018 (FiveThirtyEight).' };
+const NAMES = { bluesky: 'Bluesky: the last 24 hours', iowa: 'Bluesky: Iowa election accounts', x: 'X (Twitter): Russian troll accounts' };
+const ABOUT = { bluesky: 'everything posted on Bluesky in the last 24 hours',
+  iowa: 'Bluesky accounts around the Iowa election, Oct 27 to Nov 10, 2026', x: 'known Russian troll accounts on Twitter, 2012 to 2018' };
 const panel = (title, sub, body) => `<section class="panel"><h2>${title}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}${body}</section>`;
 const crumb = (...links) => `<p class="crumb"><a href="#/${enc(name)}">All groups</a>${links.map(l => ' / ' + l).join('')}</p>`;
 const summary = items => `<div class="summary">${items.map(([v, l]) => `<div><b>${v}</b>${l}</div>`).join('')}</div>`;
@@ -249,35 +287,114 @@ const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disc
 const setFilters = html => $('filters').innerHTML = html;
 
 // ---------- views ----------
+// ---------- plain language (the main pages speak in sentences, not numbers) ----------
+const TOPIC = { political: 'Politics', scam: 'Scam', porn: 'Adult content', other: 'Other topics' };
+const CLUE_TAGS = {
+  hidden: ['Hidden bot group', 'Several bot signs together, and they never say they are bots.'],
+  'new-accounts': ['Brand-new accounts', 'Most of the accounts were made in the same two weeks.'],
+  'same-name': ['Same name', 'Most of the accounts use the same display name.'],
+  'template-bio': ['Copy-paste profiles', 'Their profile descriptions are almost the same.'],
+  'blank-profiles': ['Empty profiles', 'Most accounts have no name and no description.'],
+  'gone-accounts': ['Deleted accounts', 'Many of the accounts were deleted or banned after posting.'],
+  'high-volume': ['Posts nonstop', 'New accounts with few followers that post a lot every day.'],
+  'own-domain': ['Pushes one website', 'Most of their links go to a website almost nobody else shares.'],
+  'no-sleep': ['Never sleeps', 'They post at every hour of the day and night.'],
+};
+const REAL_TAGS = {
+  'likely-community': ['Looks like real people', 'Old accounts with real, different profiles. This may be a real community.'],
+  disclosed: ['Says it is a bot', 'Their profiles say they are bots, news feeds or official accounts.'],
+};
+const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
+// The clues a group shows, in plain words. Each: [title, explanation]
+function clues(g) {
+  const out = [];
+  if (g.shared?.dup) out.push(['Same words', `${plural(g.shared.dup, 'post was', 'posts were')} copied word for word by two or more of them.`]);
+  if (g.shared?.item) out.push(['Same links and hashtags', `They shared the same links, hashtags, mentions or reposts ${plural(g.shared.item, 'time', 'times')}.`]);
+  if (g.keys.some(k => k.kind === 'tgt')) out.push(['Reply to the same posts', 'They keep replying to the same posts.']);
+  if (g.edges.some(e => e.fast > 0)) out.push(['Same minute', 'They often post the same thing less than a minute apart.']);
+  if (g.sched_sim >= .5) out.push(['Same hours', g.sched_sim >= .8 ? 'They are online at almost exactly the same hours, like workers on one shift.' : 'They are online at similar hours of the week.']);
+  for (const t of g.tags) if (CLUE_TAGS[t]) out.push(CLUE_TAGS[t]);
+  return out;
+}
+const realSigns = g => g.tags.filter(t => REAL_TAGS[t]).map(t => REAL_TAGS[t]);
+// "copies more than N of every 100 groups we found" (rank among all groups found; a ranking, not a probability)
+const beats = g => Math.max(0, Math.floor(pctAbove(g) * 100));
+const meter = g => `<div class="meterrow" data-tip="${esc(`Rank ${g.g} of ${num(D.n_groups)} groups found. This compares groups with each other. It is not the chance that they are fake.`)}">
+  <div class="meter" aria-hidden="true"><i style="width:${beats(g)}%"></i></div>
+  <span>Copies more than <b>${beats(g)}</b> of every 100 groups we found</span></div>`;
+// one sentence about the thing most members share
+function proof(k) {
+  const n = `${k.users} of them`;
+  if (k.kind === 'dup') return `${n} posted the exact same words: <q>${esc((k.sample || '').slice(0, 140))}${(k.sample || '').length > 140 ? '…' : ''}</q>`;
+  if (k.kind === 'tgt') { const i = keyInfo(k); return `${n} replied to the same ${ext(i.url, 'post')}.`; }
+  const v = k.key;
+  if (v.startsWith('url:')) return `${n} shared the same link: ${ext('https://' + v.slice(4), esc(v.slice(4).split('/')[0]))}`;
+  if (v.startsWith('#')) return `${n} used the same hashtag: <b>${esc(v)}</b>`;
+  if (v.startsWith('@')) return `${n} mentioned the same account: <b>${esc(keyInfo(k).text)}</b>`;
+  if (v.startsWith('rt:')) return `${n} reposted the same ${ext(keyInfo(k).url, 'post')}.`;
+  return `${n} share: ${esc(keyInfo(k).text)}`;
+}
+// The proof list: links to the same website are merged into one line, so a site with many pages isn't repeated
+function proofItems(g, max = 6) {
+  const out = [], byHost = {};
+  for (const k of g.keys) {
+    if (k.kind === 'item' && k.key.startsWith('url:')) {
+      const host = k.key.slice(4).split('/')[0];
+      if (byHost[host]) { const it = byHost[host]; it.n++; it.users = Math.max(it.users, k.users); it.posts.push(...(k.posts || []));
+        it.html = `${it.users} of them shared links to <b>${it.n}</b> different pages on ${ext('https://' + host, esc(host))}`; continue; }
+      if (out.length >= max) continue;
+      byHost[host] = { html: proof(k), posts: [...(k.posts || [])], n: 1, users: k.users }; out.push(byHost[host]); continue;
+    }
+    if (out.length < max) out.push({ html: proof(k), posts: k.posts || [] });
+  }
+  out.forEach(it => it.posts = it.posts.slice(0, 30));
+  return out;
+}
+const ROLE = { RightTroll: 'right-wing trolls', LeftTroll: 'left-wing trolls', NonEnglish: 'non-English trolls', NewsFeed: 'fake local-news accounts',
+  HashtagGamer: 'hashtag-game trolls', Fearmonger: 'fear-spreading trolls', Commercial: 'advertising accounts', Unknown: 'trolls with an unknown job' };
+const role = r => ROLE[r] || r;
+function answer(g) {
+  const cats = g.members.map(m => m.category).filter(Boolean);
+  if (cats.length) { const c = {}; cats.forEach(x => c[x] = (c[x] || 0) + 1); const [best, n] = Object.entries(c).sort((a, b) => b[1] - a[1])[0];
+    return `<b>${n} of ${cats.length}</b> are known ${esc(role(best))}.`; }
+  const lab = g.members.filter(m => typeof m.label === 'boolean');
+  if (lab.length) return `<b>${lab.filter(m => m.label).length} of ${lab.length}</b> are known propaganda accounts.`;
+  return null;
+}
+const chips = g => clues(g).map(([t, d]) => `<span class="chip" data-tip="${esc(d)}">✓ ${esc(t)}</span>`).join('') +
+  realSigns(g).map(([t, d]) => `<span class="chip real" data-tip="${esc(d)}">${esc(t)}</span>`).join('');
+
+// ---------- views ----------
 function viewList() {
   const kinds = [...new Set(D.groups.map(g => g.kind).filter(Boolean))];
-  const tags = [...new Set(D.groups.flatMap(g => g.tags))];
-  const hasKnown = D.groups.some(g => known(g));
-  const sel = (id, label, vals) => vals.length ? `<label>${label} <select id="${id}"><option value="">All</option>${vals.map(v => `<option>${esc(v)}</option>`).join('')}</select></label>` : '';
-  setFilters(sel('fk', 'Kind', kinds) + sel('ft', 'Tag', tags));
-  $('app').innerHTML = `${summary([[num(D.posts), 'posts'], [num(D.active_users), 'accounts scored'], [num(D.n_groups), 'groups found'],
-      [`${day(D.start)} – ${day(D.end)}`, 'time span']])}
-    <section class="panel"><div class="ghead"><div><h2>Groups</h2><p class="muted" style="font-size:14px;margin:0">${esc(ABOUT[name] || '')} Ranked by shared content per member. Strength is a group's rank among all groups found, not a probability. Select a group to see its evidence.</p></div></div>
-      <div class="scroll"><table><thead><tr><th class="n">#</th><th>${hint('kind', 'Kind')}</th>${tags.length ? `<th>${hint('tags', 'Tags')}</th>` : ''}<th class="n">${hint('accounts', 'Accounts')}</th><th>${hint('strength', 'Strength')}</th>${hasKnown ? `<th>${hint('known', 'Known')}</th>` : ''}<th class="n">${hint('schedule', 'Schedule')}</th><th>${hint('trace', 'Top shared trace')}</th></tr></thead><tbody id="rows"></tbody></table></div>
-      <div class="pager" id="pager"></div></section>
-    <p class="muted" style="font-size:13px">Showing the top ${D.groups.length} of ${num(D.n_groups)} groups. Data made ${esc(D.generated)}.</p>`;
+  const tags = [...new Set(D.groups.flatMap(g => g.tags))].filter(t => CLUE_TAGS[t] || REAL_TAGS[t]);
+  const sel = (id, label, vals, names) => vals.length ? `<label>${label} <select id="${id}"><option value="">All</option>${vals.map(v => `<option value="${esc(v)}">${esc(names[v]?.[0] || names[v] || v)}</option>`).join('')}</select></label>` : '';
+  setFilters(sel('fk', 'Topic', kinds, TOPIC) + sel('ft', 'Clue', tags, { ...CLUE_TAGS, ...REAL_TAGS }));
+  $('app').innerHTML = `<section class="intro">
+      <h1>Accounts that act like a team</h1>
+      <p>We looked at <b>${num(D.posts)}</b> posts from <b>${num(D.active_users)}</b> accounts (${esc(ABOUT[name] || name)}).
+        Some accounts copy each other: the same words, the same links, at the same hours. That can mean one person or company runs many fake accounts.
+        Here are the <b>${D.groups.length}</b> groups that copy each other the most.</p>
+      <ol class="how"><li><b>Each card is a group</b> of accounts that act alike.</li><li><b>The ✓ clues</b> show how they copy each other. Hover one to learn more.</li><li><b>Open a group</b> to see the proof and check it yourself.</li></ol>
+    </section>
+    <div id="cards"></div><div class="pager" id="pager"></div>`;
   const draw = () => {
     const fk = $('fk')?.value, ft = $('ft')?.value;
     const rows = D.groups.filter(g => (!fk || g.kind === fk) && (!ft || g.tags.includes(ft)));
-    const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE)); page = Math.min(page, pages - 1);
-    $('rows').innerHTML = rows.slice(page * PER_PAGE, (page + 1) * PER_PAGE).map(g => { const k = g.keys[0], i = k && keyInfo(k);
-      return `<tr class="click" data-g="${g.g}" tabindex="0"><td class="n">${g.g}</td><td class="kind">${esc(g.kind || '')}</td>${tags.length ? `<td>${tagPills(g.tags)}</td>` : ''}
-      <td class="n">${g.size}</td><td style="white-space:nowrap">${strengthCell(g)}</td>${hasKnown ? `<td title="${esc(known(g)?.title || '')}">${esc(known(g)?.text || '')}</td>` : ''}<td class="n">${g.sched_sim.toFixed(2)}</td>
-      <td class="trace">${i ? `<div title="${esc(i.text.slice(0, 300))}"><span class="muted">${esc(i.label)} ×${k.users}</span> ${esc(i.text.slice(0, 160))}</div>` : ''}</td></tr>`; }).join('')
-      || '<tr><td colspan="8" class="muted">No groups match these filters.</td></tr>';
-    $('pager').innerHTML = `<span>${rows.length ? page * PER_PAGE + 1 : 0}–${Math.min(rows.length, (page + 1) * PER_PAGE)} of ${rows.length}</span>
+    const per = 10, pages = Math.max(1, Math.ceil(rows.length / per)); page = Math.min(page, pages - 1);
+    $('cards').innerHTML = rows.slice(page * per, (page + 1) * per).map(g => { const a = answer(g), href = `#/${enc(name)}/g/${g.g}`;
+      return `<article class="card"><div class="cardtop"><span class="rank">#${g.g}</span>
+          <h2><a href="${href}">${plural(g.size, 'account', 'accounts')} acting like a team</a></h2>${g.kind ? `<span class="topic">${esc(TOPIC[g.kind] || g.kind)}</span>` : ''}</div>
+        ${g.keys[0] ? `<p class="say">${proof(g.keys[0])}</p>` : ''}
+        <div class="chips">${chips(g)}</div>
+        ${meter(g)}
+        ${a ? `<p class="answer">Checked against the answer key: ${a}</p>` : ''}
+        <a class="open" href="${href}">See the proof</a></article>`; }).join('') || '<p class="muted">No groups match. Try “All” in the menus above.</p>';
+    $('pager').innerHTML = `<span>Groups ${rows.length ? page * per + 1 : 0}–${Math.min(rows.length, (page + 1) * per)} of ${rows.length}</span>
       <button id="prev" ${page ? '' : 'disabled'}>Previous</button><button id="next" ${page < pages - 1 ? '' : 'disabled'}>Next</button>`;
-    $('prev').onclick = () => { page--; draw(); }; $('next').onclick = () => { page++; draw(); };
+    $('prev').onclick = () => { page--; draw(); scrollTo(0, 0); }; $('next').onclick = () => { page++; draw(); scrollTo(0, 0); };
   };
   for (const id of ['fk', 'ft']) $(id)?.addEventListener('change', () => { page = 0; draw(); });
-  const open = tr => { if (tr) location.hash = `#/${enc(name)}/g/${tr.dataset.g}`; };
-  $('rows').addEventListener('click', e => open(e.target.closest('tr[data-g]')));
-  $('rows').addEventListener('keydown', e => { if (e.key === 'Enter') open(e.target.closest('tr[data-g]')); });
   draw();
 }
 
@@ -285,29 +402,50 @@ function viewGroup(n) {
   setFilters('');
   const g = D.groups.find(x => x.g === +n);
   if (!g) return $('app').innerHTML = `${crumb()}<p class="muted">No such group.</p>`;
-  const shares = Object.entries(g.kind_shares || {}).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
+  const a = answer(g), cl = clues(g), real = realSigns(g);
   $('app').innerHTML = `${crumb(`Group ${g.g}`)}
-    <div class="ghead"><div><h1>Group ${g.g}</h1><p>${esc(g.why)}</p>
-      <div class="row" style="margin-top:8px">${g.kind ? `<span class="pill">${esc(g.kind)}</span>` : ''}${tagPills(g.tags)}${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">topic: ${esc(shares)}</span>` : ''}</div></div>
-      <div class="exports">Export <button data-x="members">Members CSV</button><button data-x="evidence">Evidence CSV</button><button data-x="graphml">GraphML</button><button data-x="json">JSON</button></div></div>
-    ${summary([[g.size, 'accounts'], [`<span title="Raw score ${g.score.toFixed(1)}">${topPct(g)}</span>`, hint('strength', `strength, rank ${g.g} of ${num(D.n_groups)}`)],
-      ...(known(g) ? [[esc(known(g).text), hint('known', 'answer key: ' + (g.members.some(m => m.category) ? 'main troll role' : 'labeled propaganda'))]] : []),
-      [g.sched_sim.toFixed(2), hint('schedule', 'schedule match')], [g.keys.length, hint('trace', 'shared traces')]])}
-    ${panel('Network', 'Accounts linked by the traces they share. Thicker lines share more. Hover an account, click to open it.', `<div class="legend" id="netlegend"></div><div class="net" id="net"></div>`)}
-    ${panel('Evidence', 'Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used the trace.',
-      `<div id="keys">${g.keys.slice(0, 10).map(keyBlock).join('')}</div>${more('morekeys', Math.min(g.keys.length, 60) - 10, 'traces')}${g.keys.length > 60 ? `<p class="muted" style="font-size:13px">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}`)}
-    <div class="grid2">
+    <section class="intro"><h1>${plural(g.size, 'account', 'accounts')} acting like a team</h1>
+      <p class="big">${g.keys[0] ? proof(g.keys[0]) : ''}</p>
+      ${meter(g)}
+      ${a ? `<p class="answer">Checked against the answer key: ${a}</p>` : ''}
+      ${g.kind ? `<p class="muted">Their posts are mostly about: <b>${esc(TOPIC[g.kind] || g.kind)}</b></p>` : ''}
+    </section>
+    <section class="panel"><h2>The clues</h2><p class="sub">What these accounts do the same way.</p>
+      <ul class="checks">${cl.map(([t, d]) => `<li><span class="tick">✓</span><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join('')}
+      ${real.map(([t, d]) => `<li class="real"><span class="tick">!</span><b>${esc(t)}</b><span>${esc(d)}</span></li>`).join('')}</ul></section>
+    <section class="panel"><h2>Who copies who</h2><p class="sub">Each dot is an account. A line means two accounts copied each other. The more lines, the more they act as one team. Hover a dot to see the account.</p>
+      <div class="legend" id="netlegend"></div><div class="net" id="net"></div></section>
+    <section class="panel"><h2>The proof</h2><p class="sub">The things most of them share. Open the posts to check them yourself.</p>
+      <ul class="proofs">${proofItems(g).map(({ html, posts }) => `<li>${html}${posts.length ? `<details><summary>See ${posts.length} posts</summary><div class="posts">${posts.map(postLine).join('')}</div></details>` : ''}</li>`).join('')}</ul></section>
+    <section class="panel"><h2>What time they post</h2><p class="sub" id="hourtxt"></p><div id="hours"></div></section>
+    <details class="expert"><summary>For investigators: all the details</summary>
+      <div class="exports">Download <button data-x="members">Members CSV</button><button data-x="evidence">Evidence CSV</button><button data-x="graphml">GraphML</button><button data-x="json">JSON</button></div>
+      ${summary([[g.score.toFixed(1), 'raw score'], [`${g.g} of ${num(D.n_groups)}`, 'rank'], [g.sched_sim.toFixed(2), 'schedule similarity (0–1)'], [g.keys.length, 'shared traces']])}
+      <p>${esc(g.why)}</p>
+      ${panel('All shared traces', '"In all data" counts every scored account that used the trace.', `<div id="keys">${g.keys.slice(0, 60).map(keyBlock).join('')}</div>`)}
       ${panel('Timeline', 'One row per account, one dot per post. Orange posts share a trace with another member.', '<div id="tl"></div>')}
-      ${panel('Weekly schedule', 'Posts by weekday and hour (UTC; X data: hours as stored). Real people have quiet hours.', '<div id="heat"></div><p id="tz" style="font-size:13px;margin:10px 0 0"></p>')}
-    </div>
-    ${panel('Strongest links', 'Account pairs with the most shared traces, weighted so rare traces count more.', `<div class="scroll">${pairTable(g.edges.slice(0, 15))}</div>`)}
-    ${panel('Members', 'Public account facts. "Gone" accounts were deleted, deactivated or taken down.', `<div class="scroll" id="members">${memberTable(g, 25)}</div>${more('moremembers', g.members.length - 25, 'members')}`)}`;
-  $('morekeys')?.addEventListener('click', e => { $('keys').innerHTML = g.keys.slice(0, 60).map(keyBlock).join(''); e.target.remove(); });
-  $('moremembers')?.addEventListener('click', e => { $('members').innerHTML = memberTable(g); e.target.remove(); });
+      ${panel('Weekly schedule', 'Posts by weekday and hour (UTC).', '<div id="heat"></div><p id="tz" style="font-size:14px;margin:10px 0 0"></p>')}
+      ${panel('Strongest links', 'Account pairs with the most shared traces.', `<div class="scroll">${pairTable(g.edges.slice(0, 15))}</div>`)}
+      ${panel('Members', 'Public account facts. "Gone" accounts were deleted, deactivated or taken down.', `<div class="scroll">${memberTable(g)}</div>`)}
+    </details>`;
   document.querySelectorAll('[data-x]').forEach(b => b.onclick = () => exportGroup(g, b.dataset.x));
   network(g);
+  hours(g.schedule);
   $('tl').innerHTML = timeline(g);
   heat(g.schedule);
+}
+
+// "What time they post": 24 bars, one per hour of the day
+function hours(h) {
+  const by = Array.from({ length: 24 }, (_, i) => [0, 1, 2, 3, 4, 5, 6].reduce((a, d) => a + (h[d * 24 + i] || 0), 0));
+  const tot = by.reduce((a, b) => a + b, 0), max = Math.max(...by, 1);
+  const lbl = i => i === 0 ? '12am' : i < 12 ? i + 'am' : i === 12 ? '12pm' : (i - 12) + 'pm';
+  if (!tot) { $('hourtxt').textContent = 'No posting times in this data.'; return; }
+  const best = by.indexOf(max), quiet = by.filter(v => v < max * .1).length;
+  $('hourtxt').textContent = `Each bar is one hour of the day (UTC time). Taller bars mean more posts. They post most around ${lbl(best)}.` +
+    (D.end - D.start >= 3 * 86400 ? (quiet >= 5 ? ' Real people sleep, so quiet hours are normal.' : ' They hardly ever go quiet, which real people usually do when they sleep.') : '');
+  $('hours').innerHTML = `<div class="hours">${by.map((v, i) => `<div data-tip="${esc(`${lbl(i)}: ${num(v)} posts`)}"><i style="height:${Math.max(2, v / max * 100)}%"></i></div>`).join('')}</div>
+    <div class="hourlbl">${[0, 6, 12, 18].map(i => `<span style="left:${i / 24 * 100}%">${lbl(i)}</span>`).join('')}</div>`;
 }
 
 // ---------- network canvas (force layout, like Coordiscope) ----------
@@ -326,7 +464,7 @@ function network(g) {
   const cats = {}; g.members.forEach(m => { const c = truth(m); if (c) cats[c] = (cats[c] || 0) + 1; });
   const top = Object.keys(cats).sort((a, b) => cats[b] - cats[a]).slice(0, 3), pal = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
   const color = m => { const c = truth(m); return c == null ? 'var(--series-1)' : top.includes(c) ? pal[top.indexOf(c)] : 'var(--other)'; };
-  $('netlegend').innerHTML = top.length ? top.map((c, i) => `<span><i style="background:${pal[i]}"></i>${esc(c)}</span>`).join('') +
+  $('netlegend').innerHTML = top.length ? top.map((c, i) => `<span><i style="background:${pal[i]}"></i>${esc(role(c).replace(/^./, x => x.toUpperCase()))}</span>`).join('') +
     (Object.keys(cats).length > 3 ? '<span><i style="background:var(--other)"></i>Other</span>' : '') : '';
   let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
   const P = ids.map(() => ({ x: W / 2 + (rnd() - .5) * W * .6, y: H / 2 + (rnd() - .5) * H * .6 }));

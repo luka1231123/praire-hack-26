@@ -86,6 +86,28 @@ footer { padding: 24px 0 40px; font-size: 14px; color: var(--text-muted); border
   padding: 6px 9px; border-radius: 3px; font-size: 14px; line-height: 1.4; opacity: 0; transition: opacity .1s; z-index: 50; max-width: 320px; }
 #tip .m { color: var(--text-muted); }
 /* results page */
+.intro { padding: 4px 0 10px; }
+.intro p { font-size: 17px; max-width: 46em; margin: 6px 0; }
+.lead2 { font-size: 19px; color: var(--text-primary); max-width: 44em; line-height: 1.45; margin: 6px 0 16px; }
+.dots2 { display: flex; gap: 48px; flex-wrap: wrap; }
+.dotbox h3 { font-size: 16px; margin: 0 0 8px; }
+.dotgrid { display: grid; grid-template-columns: repeat(10, 18px); gap: 4px; }
+.dotgrid i { width: 18px; height: 18px; border-radius: 50%; background: var(--panel-2); border: 1px solid #d3d8df; }
+.dotgrid i.on { background: var(--series-2); border-color: var(--series-2); }
+.dotbox p { font-size: 15px; margin: 8px 0 0; color: var(--text-secondary); }
+.dotbox p b { font-size: 22px; font-family: var(--serif); }
+.cluerow { display: grid; grid-template-columns: 30px 220px minmax(0, 1fr); gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--grid); font-size: 16px; }
+.cluerow .num { width: 24px; height: 24px; border-radius: 50%; background: var(--navy); color: #fff; text-align: center; line-height: 24px; font-size: 13px; font-weight: 700; }
+.cluerow .bar { height: 14px; background: var(--series-1); border-radius: 2px; cursor: help; }
+.hours { display: grid; grid-template-columns: repeat(24, 1fr); gap: 2px; height: 100px; align-items: end; border-bottom: 1px solid var(--rule); }
+.hours div { height: 100%; display: flex; align-items: flex-end; cursor: help; }
+.hours i { display: block; width: 100%; background: var(--series-1); border-radius: 2px 2px 0 0; }
+.hours.b i { background: var(--series-2); }
+.hourlbl { position: relative; height: 22px; font-size: 13px; color: var(--text-muted); }
+.hourlbl span { position: absolute; top: 4px; }
+details.expert { margin-top: 24px; border: 1px solid var(--rule); border-radius: 4px; padding: 12px 16px; }
+details.expert > summary { font-size: 16px; font-weight: 600; color: var(--link); cursor: pointer; }
+@media (max-width: 700px) { .cluerow { grid-template-columns: 30px 1fr; } .cluerow .bar { grid-column: 2; } }
 .ds-head { display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; margin: 4px 0 14px; }
 .ds-head p { margin: 4px 0 0; max-width: 60em; }
 .pill.warn { color: #8a5a00; }
@@ -115,25 +137,29 @@ footer { padding: 24px 0 40px; font-size: 14px; color: var(--text-muted); border
 </div></header>
 <main class="wrap">
   <div class="controls"><label>Dataset <select id="ds" aria-label="Dataset shown on this page"></select></label></div>
-  <div class="ds-head"><div><h1 id="ds-title"></h1><p id="ds-desc"></p></div><span class="pill" id="ds-pill"></span></div>
-  <div id="ds-stats"></div>
+  <section class="intro"><h1 id="ds-title"></h1><p id="ds-desc"></p><p class="muted" id="ds-facts"></p></section>
 
-  <section class="panel"><h2 id="res-title">Results</h2><p class="sub" id="res-lead"></p>
-    <div class="resultrow"><div><div class="big accent" id="res-big">—</div><div class="cap" id="res-cap"></div></div>
-      <div><div class="legend" id="prec-legend"></div><div class="chart" id="c-prec"></div></div></div></section>
+  <section class="panel"><h2>Did it work?</h2><p class="lead2" id="win-text"></p>
+    <div class="dots2" id="win-dots"></div><p class="muted" id="win-note"></p></section>
 
-  <div class="grid2">
-    <section class="panel"><h2>Every group, by score</h2><p class="sub" id="scatter-sub"></p><div class="chart" id="c-scatter"></div></section>
-    <section class="panel"><h2 id="lift-title">Which shared traces matter most</h2><p class="sub" id="lift-sub"></p><div class="chart" id="c-lift"></div></section>
-  </div>
+  <section class="panel" id="clue-box"><h2>The biggest clue</h2><p class="lead2" id="clue-text"></p><div id="clue-list"></div></section>
 
-  <section class="panel"><h2>Weekly schedule</h2><p class="sub" id="sched-sub">Average share of each account's posts by hour of the week, in the dataset's time zone (likely UTC). Brighter means busier.</p>
-    <div class="chart short" id="c-sched"></div></section>
+  <section class="panel" id="hours-box"><h2>What time they post</h2><p class="lead2" id="hours-text"></p><div class="grid2" id="hours-two"></div></section>
 
-  <div class="grid2">
-    <section class="panel"><h2>Activity over time</h2><p class="sub" id="monthly-sub">Posts per month.</p><div class="legend" id="monthly-legend"></div><div class="chart" id="c-monthly"></div></section>
-    <section class="panel"><h2 id="bd-title">Where the posts are</h2><p class="sub" id="bd-sub"></p><div class="chart" id="c-breakdown"></div></section>
-  </div>
+  <details class="expert"><summary>For experts: more charts</summary>
+    <section class="panel"><h2 id="res-title">Results</h2><p class="sub" id="res-lead"></p>
+      <div class="resultrow"><div><div class="big accent" id="res-big">—</div><div class="cap" id="res-cap"></div></div>
+        <div><div class="legend" id="prec-legend"></div><div class="chart" id="c-prec"></div></div></div></section>
+    <div class="grid2">
+      <section class="panel"><h2>Every group, by score</h2><p class="sub" id="scatter-sub"></p><div class="chart" id="c-scatter"></div></section>
+      <section class="panel"><h2 id="lift-title">Which shared traces matter most</h2><p class="sub" id="lift-sub"></p><div class="chart" id="c-lift"></div></section>
+    </div>
+    <section class="panel"><h2>Weekly schedule</h2><p class="sub" id="sched-sub">Average share of each account's posts by hour of the week (likely UTC).</p><div class="chart short" id="c-sched"></div></section>
+    <div class="grid2">
+      <section class="panel"><h2>Activity over time</h2><p class="sub" id="monthly-sub">Posts per month.</p><div class="legend" id="monthly-legend"></div><div class="chart" id="c-monthly"></div></section>
+      <section class="panel"><h2 id="bd-title">Where the posts are</h2><p class="sub" id="bd-sub"></p><div class="chart" id="c-breakdown"></div></section>
+    </div>
+  </details>
 </main>
 <footer><div class="wrap">PropNET, a prairehack26 project. <a href="method.html">How it works</a> · <a href="https://github.com/luka1231123/praire-hack-26">Code</a></div></footer>
 <div id="tip"></div>
@@ -327,24 +353,68 @@ function drawScatter() {
 }
 
 
-/* ---------- dataset header ---------- */
+/* ---------- plain-language sections ---------- */
+const SIMPLE = {
+  telegram: 'Comments on 13 Russian Telegram news channels. Researchers checked thousands of the accounts by hand and marked which ones spread propaganda. That gives us an answer key to test PropNET against.',
+  x: 'Tweets from accounts run by Russia’s Internet Research Agency, a known troll farm. Every account is a troll, and each one had a job, like posing as a right-wing voter or a local news site. We test whether PropNET puts trolls with the same job together.',
+};
+const ROLE = { RightTroll: 'right-wing trolls', LeftTroll: 'left-wing trolls', NonEnglish: 'non-English trolls', NewsFeed: 'fake local-news accounts',
+  HashtagGamer: 'hashtag-game trolls', Fearmonger: 'fear-spreading trolls', Commercial: 'advertising accounts', Unknown: 'trolls with an unknown job' };
+const role = r => ROLE[r] || r;
+const EXPLORE = { x: 'x' };   // datasets that also have an Explore view
+const dots = (n, label, sub) => `<div class="dotbox"><h3>${label}</h3><div class="dotgrid" role="img" aria-label="${n} out of 100">${
+  Array.from({ length: 100 }, (_, i) => `<i class="${i < n ? 'on' : ''}"></i>`).join('')}</div><p><b>${n}</b> out of 100 ${sub}</p></div>`;
 function drawHeader() {
   const o = D.overview || {};
   $('ds-title').textContent = D.name || key;
-  $('ds-desc').innerHTML = esc((INFO[key] || {}).desc || '') + (EXPLORE[key] ? ` <a href="index.html#/${EXPLORE[key]}">Explore these groups</a>` : '');
-  const pill = $('ds-pill');
-  if (D.seed) { pill.textContent = 'Partial: numbers from the README'; pill.className = 'pill warn'; }
-  else { pill.textContent = D.generated ? 'Exported ' + D.generated.replace('T', ' ') : ''; pill.className = 'pill'; }
-  const items = [[fmt(o.posts), 'posts'], [fmt(o.users), 'accounts'], [fmt(o.threads), 'channels'], [fmt(o.categories), 'account roles'],
-    [fmt(o.labeled_users), 'labeled propaganda accounts'], [o.base_rate != null ? pct(o.base_rate) : '—', `of active accounts labeled`],
-    [o.start ? o.start.slice(0, 7) + ' – ' + o.end.slice(0, 7) : '—', 'time span']].filter(i => i[0] !== '—' && i[0] !== '0');
-  $('ds-stats').innerHTML = `<div class="summary">${items.map(([n, c]) => `<div><b>${esc(n)}</b>${esc(c)}</div>`).join('')}</div>`;
+  $('ds-desc').innerHTML = esc(SIMPLE[key] || (INFO[key] || {}).desc || '') + (EXPLORE[key] ? ` <a href="index.html#/${EXPLORE[key]}">Explore these groups</a>` : '');
+  const facts = [o.posts && `${fmt(o.posts)} posts`, o.users && `${fmt(o.users)} accounts`, o.start && `${o.start.slice(0, 4)} to ${o.end.slice(0, 4)}`].filter(Boolean);
+  $('ds-facts').textContent = facts.join(', ') + (D.seed ? '. Some charts are missing until this dataset is exported.' : '.');
 }
-const EXPLORE = { x: 'x' };   // datasets that also have an Explore view
+function drawWin() {
+  const P = D.precision || [], o = D.overview || {};
+  if (isLab() && P.length && o.base_rate) { const p = P.find(r => r.k === 50) || P[0], a = Math.round(p.labeled * 100), b = Math.max(1, Math.round(o.base_rate * 100));
+    $('win-text').innerHTML = `Yes. Out of every 100 accounts in PropNET’s top groups, <b>${a}</b> were known propaganda accounts. If you picked accounts at random, only <b>${b}</b> would be.`;
+    $('win-dots').innerHTML = dots(a, 'Accounts PropNET flagged', 'were propaganda') + dots(b, 'Accounts picked at random', 'were propaganda');
+    $('win-note').textContent = `About ${Math.round(p.labeled / o.base_rate)} times better than guessing. Based on the top ${p.k} groups (${fmt(p.users)} accounts).`; return; }
+  if (isCat() && P.length) { const p = P[P.length - 1], a = Math.round(p.purity * 100), b = Math.round(p.random * 100);
+    $('win-text').innerHTML = `Yes. When PropNET puts trolls in a group, <b>${a}</b> out of 100 end up with trolls who had the same job. If the groups were made at random, it would be <b>${b}</b>.`;
+    $('win-dots').innerHTML = dots(a, 'Groups PropNET made', 'have the same job') + dots(b, 'Random groups', 'have the same job');
+    $('win-note').textContent = p.users ? `Based on the top ${p.k} groups (${fmt(p.users)} accounts). PropNET never saw the jobs; it only looked at behavior.` : 'PropNET never saw the jobs; it only looked at behavior.'; return; }
+  $('win-text').textContent = 'This data has no answer key, so we can’t score it. Explore the groups and check the proof yourself.';
+  $('win-dots').innerHTML = ''; $('win-note').textContent = '';
+}
+const CLUE_WORDS = { dup: 'Posting the exact same words', item: 'Sharing the same links or hashtags', tgt: 'Replying to the same posts', fast: 'Posting within a minute of each other' };
+function drawClues() {
+  const L = D.lift, rows = (L?.signals || []).filter(r => r.lift != null).sort((a, b) => b.lift - a.lift);
+  $('clue-box').style.display = rows.length ? '' : 'none';
+  if (!rows.length) return;
+  const max = rows[0].lift;
+  $('clue-text').innerHTML = `<b>${CLUE_WORDS[rows[0].signal] || rows[0].name}</b> was the strongest clue that two accounts were both spreading propaganda.`;
+  $('clue-list').innerHTML = rows.map((r, i) => `<div class="cluerow"><span class="num">${i + 1}</span><span>${esc(CLUE_WORDS[r.signal] || r.name)}</span>
+    <div class="bar" style="width:${Math.max(2, r.lift / max * 100)}%" data-tip="${esc(`Two accounts that do this are ${times(r.lift)} more likely to both be propaganda accounts.`)}"></div></div>`).join('');
+}
+function drawHours() {
+  const S = D.schedule || [];
+  $('hours-box').style.display = S.length ? '' : 'none';
+  if (!S.length) return;
+  const lbl = i => i === 0 ? '12am' : i < 12 ? i + 'am' : i === 12 ? '12pm' : (i - 12) + 'pm';
+  const by = v => Array.from({ length: 24 }, (_, h) => [0, 1, 2, 3, 4, 5, 6].reduce((a, d) => a + v[d * 24 + h], 0));
+  const peak = a => a.indexOf(Math.max(...a));
+  const sets = S.map(p => ({ name: p.name, h: by(p.values) }));
+  $('hours-text').textContent = isLab() ? 'Each bar is one hour of the day (UTC time). Propaganda accounts post most during working hours, like people doing a job.'
+    : `Each bar is one hour of the day (UTC time). Different troll jobs keep different hours.`;
+  $('hours-two').innerHTML = sets.map((p, k) => { const m = Math.max(...p.h);
+    const title = isCat() ? role(p.name).replace(/^./, c => c.toUpperCase()) : p.name;
+    return `<div><h3 style="margin:0 0 8px">${esc(title)}</h3><div class="hours ${k ? 'b' : ''}">${p.h.map((v, i) => `<div data-tip="${esc(lbl(i))}"><i style="height:${Math.max(2, v / m * 100)}%"></i></div>`).join('')}</div>
+      <div class="hourlbl">${[0, 6, 12, 18].map(i => `<span style="left:${i / 24 * 100}%">${lbl(i)}</span>`).join('')}</div>
+      <p class="muted" style="margin:4px 0 0;font-size:14px">Busiest around ${lbl(peak(p.h))}.</p></div>`; }).join('');
+}
 
 function drawAll() { const liftBox = $('c-lift').closest('section'), lab = isLab() || !D.truth;
   liftBox.style.display = lab ? '' : 'none'; $('c-scatter').closest('section').style.gridColumn = lab ? '' : '1 / -1';
-  drawHeader(); drawResults(); drawScatter(); drawLift(); drawSchedule(); drawMonthly(); drawBreakdown(); }
+  drawHeader(); drawWin(); drawClues(); drawHours();
+  drawResults(); drawScatter(); drawLift(); drawSchedule(); drawMonthly(); drawBreakdown(); }
 function pick(k) { key = k; D = ALL[k] || {}; $('ds').value = k;
   const u = new URL(location); u.searchParams.set('data', k); history.replaceState(null, '', u); drawAll(); }
 const keys = Object.keys(ALL);
@@ -354,6 +424,7 @@ const T = $('tip');
 document.addEventListener('mousemove', e => { const h = e.target.closest('[data-tip]');
   if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
   const r = T.getBoundingClientRect(); T.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, e.clientY + 14) + 'px'; });
+document.querySelector('details.expert').addEventListener('toggle', e => { if (e.target.open) drawAll(); });
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawAll, 150); });
 const want = new URLSearchParams(location.search).get('data');
 pick(keys.includes(want) ? want : (keys.includes('x') && ALL.x && !ALL.x.seed ? 'x' : keys[0]));

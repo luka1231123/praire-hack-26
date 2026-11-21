@@ -120,7 +120,8 @@ ol { padding-left: 22px; } ol li { margin-bottom: 6px; color: var(--text-seconda
   <div>
     <section>
       <h1>How PropNET works</h1>
-      <p class="lead">It finds groups of accounts that act together, such as troll farms, state operators and spam networks. It uses no text model, because AI can reword every post. It looks at what operators can't easily change: who they reply to, what they link, and when they work.</p>
+      <p class="lead"><b>The short version:</b> some people run many fake accounts at once. Those accounts give themselves away by copying each other: they post the same words, share the same links and are online at the same hours. PropNET finds accounts that copy each other and shows the proof, so a person can check it.</p>
+      <p>In more detail: it finds groups of accounts that act together, such as troll farms, state operators and spam networks. It uses no text model, because AI can reword every post. It looks at what operators can't easily change: who they reply to, what they link, and when they work.</p>
     </section>
 
     <section id="why">
@@ -154,12 +155,12 @@ ol { padding-left: 22px; } ol li { margin-bottom: 6px; color: var(--text-seconda
     <section id="read">
       <h2>Reading a group</h2>
       <dl>
-        <dt>Strength</dt><dd>A group's rank among all groups found in that dataset, such as "Top 2%". The top 1% is marked red and the top 5% yellow. It's a ranking, not a probability: the tool can't say how likely a group is to be fake, and a group lower on the list can still be a real network. Hover it for the raw score (shared content per member).</dd>
-        <dt>Known</dt><dd>Only where a dataset has an answer key. On X, the share of the group's accounts with its most common troll role. On Telegram, the share labeled as propaganda. These are measured, not predicted.</dd>
-        <dt>Schedule match</dt><dd>How alike members' weekly activity is, from 0 to 1.</dd>
-        <dt>Kind</dt><dd>The group's topic (political, scam, porn or other), from a small multilingual model that compares sampled posts with example sentences. It describes the topic, not who runs the group.</dd>
-        <dt>Bot signs</dt><dd>Bluesky only, from public account facts: <i>same-name</i>, <i>new-accounts</i>, <i>template-bio</i>, <i>blank-profiles</i>, <i>gone-accounts</i>, <i>high-volume</i> (young, many posts a day, few followers), <i>own-domain</i> (links go to a site almost nobody else links) and <i>no-sleep</i> (no quiet hours). Three or more, without disclosure, marks a group <i>hidden</i> and ranks it first.</dd>
-        <dt>Real-community signs</dt><dd><i>likely-community</i> (old accounts with real, varied bios) and <i>disclosed</i> (bios that say bot, feed or official). These rank a group lower.</dd>
+        <dt>The headline</dt><dd>How many accounts are in the group, and the thing most of them share, like the same words or the same link.</dd>
+        <dt>Clues ✓</dt><dd>How the accounts copy each other: same words, same links and hashtags, replies to the same posts, posting within a minute of each other, or being online at the same hours. On Bluesky there are also clues from the profiles: brand-new accounts, the same name, copy-paste or empty profiles, deleted accounts, posting nonstop, pushing one website, or never sleeping. Green signs like "Looks like real people" point the other way.</dd>
+        <dt>The orange bar</dt><dd>"Copies more than 94 of every 100 groups we found" compares the group with all the others in that dataset. It is a ranking, not the chance that the group is fake: a group lower on the list can still be a real network.</dd>
+        <dt>Answer key</dt><dd>Only where a dataset has one. On X, how many of the accounts had the same troll job. On Telegram, how many were known propaganda accounts. These are checked facts, not guesses.</dd>
+        <dt>Topic</dt><dd>What their posts are mostly about (politics, scams, adult content or other), from a small language model. It describes the topic, not who runs the group.</dd>
+        <dt>For investigators</dt><dd>Each group page has a closed section with the raw score, every shared trace, a timeline, the weekly schedule, the closest account pairs, the member list and downloads (CSV, GraphML, JSON).</dd>
       </dl>
     </section>
 
