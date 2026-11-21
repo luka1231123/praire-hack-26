@@ -4,103 +4,131 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="referrer" content="no-referrer">
-<title>Behind the Accounts: investigate coordinated accounts</title>
+<title>Explore groups · Behind the Accounts</title>
 <meta name="description" content="Groups of accounts that act together, with the evidence for each group and a link to every post.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap">
 <style>
-/* same look as about.html (the project page) */
 :root { color-scheme: dark; --bg: #14121a; --panel: #1b1824; --panel-2: #221e2d; --rule: #2e2a3a; --grid: #26222f;
   --text-primary: #efecf6; --text-secondary: #c4bfd4; --text-muted: #8a849c;
-  --series-1: #9085e9; --series-2: #c98500; --series-3: #199e70; --other: #6e6880;
+  --series-1: #9085e9; --series-2: #c98500; --series-3: #199e70; --other: #6e6880; --surface-1: #1b1824; --line: #2e2a3a;
   --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif; }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); line-height: 1.55; font-size: 16px; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); line-height: 1.5; font-size: 15px; -webkit-font-smoothing: antialiased; }
 a { color: var(--text-primary); text-underline-offset: 3px; text-decoration-color: var(--series-1); }
-.wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
-:focus-visible { outline: 2px solid var(--series-1); outline-offset: 3px; }
-header { position: sticky; top: 0; z-index: 20; background: rgba(20,18,26,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
-header .wrap { display: flex; align-items: center; gap: 28px; height: 58px; }
-.brand { font-weight: 800; letter-spacing: -.02em; text-decoration: none; font-size: 17px; white-space: nowrap; }
-nav { display: flex; gap: 22px; }
-nav a { color: var(--text-muted); text-decoration: none; font-size: 15px; white-space: nowrap; padding: 4px 0; border-bottom: 2px solid transparent; }
-nav a:hover { color: var(--text-primary); }
-nav a.on { color: var(--text-primary); border-bottom-color: var(--series-1); }
-.picker { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); white-space: nowrap; margin-left: auto; }
-select, input, button { background: var(--panel); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 11px; font: inherit; font-size: 14px; }
-select { padding-right: 32px; cursor: pointer; appearance: none;
-  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
-  background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
-#q { width: 300px; }
-button { cursor: pointer; } button:hover { border-color: var(--text-muted); }
-@media (max-width: 900px) { nav { display: none; } #q { width: 160px; } .picker span { display: none; } }
-.notice { font-size: 14px; color: #e0b25c; border-bottom: 1px solid var(--rule); padding: 9px 0; }
-
-/* page top, like the project hero */
-.top { padding: 56px 0 44px; }
-.crumb { font-size: 14px; color: var(--text-muted); margin: 0 0 14px; }
-.crumb a { color: var(--text-muted); }
-.kicker { font-size: 14px; color: var(--series-1); font-weight: 500; margin: 0 0 8px; }
-h1 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1; letter-spacing: -.045em; font-weight: 800; margin: 0 0 20px; word-break: break-word; }
-.lead { font-size: 20px; color: var(--text-secondary); max-width: 40em; margin: 0 0 24px; line-height: 1.5; }
-.btns { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.btn { padding: 10px 16px; font-size: 15px; font-weight: 500; text-decoration: none; display: inline-block; }
-.btn.primary { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
-.stats { display: flex; flex-wrap: wrap; margin-top: 32px; border-top: 1px solid var(--rule); }
-.stats > div { padding: 14px 26px 0 0; margin-right: 26px; border-right: 1px solid var(--rule); }
-.stats > div:last-child { border-right: 0; }
-.stats b { display: block; font-size: 28px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.stats span { font-size: 14px; color: var(--text-muted); }
-
-/* sections: heading column + content column */
-section.block { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 48px; padding: 56px 0; border-top: 1px solid var(--rule); }
-.side h2 { font-size: 28px; line-height: 1.08; letter-spacing: -.03em; font-weight: 800; margin: 0 0 12px; }
-.side p { font-size: 15px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
-.side { position: sticky; top: 90px; align-self: start; }
-@media (max-width: 900px) { section.block { grid-template-columns: minmax(0, 1fr); gap: 20px; } .side { position: static; } }
-h3 { font-size: 18px; letter-spacing: -.01em; margin: 0 0 8px; font-weight: 700; }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
 p { color: var(--text-secondary); }
 b, strong { color: var(--text-primary); font-weight: 700; }
-.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-.pill { display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 3px; background: var(--panel-2); color: var(--text-muted); white-space: nowrap; text-decoration: none; }
+h1 { font-size: 30px; line-height: 1.1; letter-spacing: -.03em; font-weight: 800; margin: 0 0 8px; word-break: break-word; }
+h2 { font-size: 19px; letter-spacing: -.01em; font-weight: 700; margin: 0 0 4px; }
+h3 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.muted { color: var(--text-muted); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; color: var(--text-primary); }
+
+/* header, the same on every page */
+header.bar { position: sticky; top: 0; z-index: 20; background: rgba(20,18,26,.95); border-bottom: 1px solid var(--rule); }
+header.bar .wrap { display: flex; align-items: center; gap: 22px; height: 54px; }
+.brand { font-weight: 800; letter-spacing: -.02em; text-decoration: none; font-size: 16px; white-space: nowrap; }
+.tagline { color: var(--text-muted); font-size: 14px; white-space: nowrap; }
+header nav { display: flex; gap: 4px; margin-left: auto; }
+header nav a { color: var(--text-muted); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 4px; }
+header nav a:hover { color: var(--text-primary); background: var(--panel); }
+header nav a.on { color: var(--text-primary); background: var(--panel-2); }
+@media (max-width: 760px) { .tagline { display: none; } header nav { margin-left: 0; } }
+
+/* controls */
+select, input, button { background: var(--panel); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 10px; font: inherit; font-size: 14px; }
+select { padding-right: 30px; cursor: pointer; appearance: none; max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+button { cursor: pointer; } button:hover { border-color: var(--text-muted); }
+.controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 16px 0 12px; }
+.controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.controls .grow { flex: 1; min-width: 200px; }
+.controls .grow input { width: 100%; }
+.notice { font-size: 13px; color: var(--text-muted); padding: 0 0 14px; }
+.notice b { color: #e0b25c; font-weight: 500; }
+
+/* summary numbers */
+.summary { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin-bottom: 18px; }
+.summary div { font-size: 13px; color: var(--text-muted); }
+.summary b { display: block; font-size: 20px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* panels */
+.panel { background: var(--panel); border-radius: 6px; padding: 18px 20px; margin-bottom: 16px; }
+.panel > p.sub { font-size: 14px; color: var(--text-muted); margin: 0 0 14px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 3px; background: var(--panel-2); color: var(--text-muted); white-space: nowrap; text-decoration: none; margin: 1px 2px 1px 0; }
 a.pill:hover { color: var(--text-primary); }
 .pill.bad { color: var(--series-2); } .pill.ok { color: #3fc296; }
-.kind { font-size: 13px; color: var(--text-muted); }
-table { width: 100%; border-collapse: collapse; font-size: 15px; }
-th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 14px; white-space: nowrap; }
-td { padding: 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
-td.n { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); white-space: nowrap; }
-tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel); }
+
+/* tables */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 7px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.n { color: var(--text-primary); }
 .scroll { overflow-x: auto; }
-.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
-.muted { color: var(--text-muted); }
-.key { border-top: 1px solid var(--rule); padding: 14px 0; }
-.key:first-child { border-top: 0; padding-top: 0; }
-.key .txt { color: var(--text-primary); white-space: pre-wrap; word-break: break-word; margin-top: 6px; }
-.posts { margin: 8px 0 0; font-size: 14px; border-left: 2px solid var(--rule); padding-left: 14px; }
-.posts div { padding: 4px 0; color: var(--text-secondary); word-break: break-word; }
-details summary { cursor: pointer; color: var(--text-muted); font-size: 14px; margin-top: 6px; }
-.heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; font-size: 11px; color: var(--text-muted); max-width: 720px; }
-.heat div { height: 18px; border-radius: 2px; }
-.heat .l { background: none; height: auto; line-height: 18px; }
-svg text { fill: var(--text-muted); font-size: 11px; font-family: var(--font); }
-.hits a { display: block; padding: 10px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
-.hits a:hover { color: var(--series-1); }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; }
-footer { padding: 40px 0 64px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--rule); }
+footer { padding: 28px 0 48px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--rule); margin-top: 32px; }
 footer a { color: var(--text-secondary); }
+#tip { position: fixed; pointer-events: none; background: var(--panel-2); border: 1px solid var(--rule); color: var(--text-primary);
+  padding: 7px 10px; border-radius: 4px; font-size: 13px; line-height: 1.4; opacity: 0; transition: opacity .1s; z-index: 50; max-width: 320px; }
+#tip .m { color: var(--text-muted); }
+
+/* explore page */
+.crumb { font-size: 14px; color: var(--text-muted); margin: 18px 0 10px; }
+.crumb a { color: var(--text-muted); }
+.ghead { display: flex; gap: 20px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; margin-bottom: 14px; }
+.ghead p { margin: 4px 0 0; max-width: 62em; }
+.exports { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--text-muted); }
+.exports button { padding: 5px 10px; font-size: 13px; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel); }
+td.trace { max-width: 0; width: 46%; }
+td.trace div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kind { font-size: 13px; color: var(--text-secondary); }
+.pager { display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding: 12px 0 0; font-size: 13px; color: var(--text-muted); }
+.pager button { padding: 5px 12px; }
+.pager button[disabled] { opacity: .4; cursor: default; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+.key { border-top: 1px solid var(--rule); padding: 12px 0; }
+.key:first-child { border-top: 0; padding-top: 0; }
+.key .txt { color: var(--text-primary); white-space: pre-wrap; word-break: break-word; margin-top: 4px; }
+.posts { margin: 6px 0 0; font-size: 13px; border-left: 2px solid var(--rule); padding-left: 12px; }
+.posts div { padding: 3px 0; color: var(--text-secondary); word-break: break-word; }
+details summary { cursor: pointer; color: var(--text-muted); font-size: 13px; margin-top: 4px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.net { position: relative; height: 420px; }
+.net svg { width: 100%; height: 100%; display: block; }
+.netinfo { position: absolute; left: 10px; bottom: 10px; background: var(--panel-2); border-radius: 4px; padding: 8px 12px; font-size: 13px; color: var(--text-muted); }
+.netinfo b { font-size: 13px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.heat { display: grid; grid-template-columns: 32px repeat(24, 1fr); gap: 2px; font-size: 11px; color: var(--text-muted); }
+.heat div { height: 16px; border-radius: 2px; }
+.heat .l { background: none; height: auto; line-height: 16px; }
+svg text { fill: var(--text-muted); font-size: 11px; font-family: var(--font); }
+.hits a { display: block; padding: 8px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.hits a:hover { color: var(--series-1); }
 </style>
 </head>
 <body>
-<header><div class="wrap">
-  <a class="brand" href="./">Behind the Accounts</a>
-  <nav><a class="on" href="./">Investigate</a><a id="about" href="about.html">About the project</a></nav>
-  <label class="picker"><span>Dataset</span> <select id="ds" aria-label="Dataset"></select></label>
-  <input id="q" type="search" placeholder="Search handle, DID, link, #tag, text" aria-label="Search">
+<header class="bar"><div class="wrap">
+  <a class="brand" href="index.html">Behind the Accounts</a><span class="tagline">Find accounts that act together</span>
+  <nav><a class="on" href="index.html">Explore</a><a class="proj" href="results.html">Results</a><a class="proj" href="method.html">Method</a></nav>
 </div></header>
-<div class="notice"><div class="wrap">This tool flags coordinated behavior, not opinions. A group can be a real community. Open each post at its source and decide yourself.</div></div>
-<main class="wrap" id="app"><div class="top"><p class="lead">Loading…</p></div></main>
-<footer><div class="wrap">Behind the Accounts, a prairehack26 project. Data from public posts only. <a href="about.html" id="about2">How it works</a></div></footer>
+<div class="wrap">
+  <div class="controls">
+    <label>Dataset <select id="ds" aria-label="Dataset"></select></label>
+    <label class="grow">Search <input id="q" type="search" placeholder="Handle, DID, link, #tag or text, then Enter"></label>
+    <span id="filters" style="display:contents"></span>
+  </div>
+  <div class="notice"><b>Behavior, not opinions.</b> A group can be a real community. Open each post at its source and decide yourself.</div>
+</div>
+<main class="wrap" id="app"><p class="muted">Loading…</p></main>
+<footer><div class="wrap">Behind the Accounts, a prairehack26 project. Public posts only. <a class="proj" href="method.html">How it works</a></div></footer>
+<div id="tip"></div>
 <script>
 'use strict';
 const $ = id => document.getElementById(id);
@@ -109,7 +137,9 @@ const ext = (url, text) => url ? `<a href="${esc(url)}" target="_blank" rel="noo
 const day = t => new Date(t * 1000).toISOString().slice(0, 10);
 const when = t => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
 const num = n => (n ?? 0).toLocaleString('en-US');
-let D = null, name = null, U = {}, K = {};   // dataset, its name, account index, key index
+const enc = encodeURIComponent;
+let D = null, name = null, U = {}, K = {}, page = 0;   // dataset, its name, account index, key index, list page
+const PER_PAGE = 25;
 
 // ---------- links to the source platform ----------
 function postUrl(id, user) {
@@ -118,12 +148,12 @@ function postUrl(id, user) {
     if (!m) return null;
     return m[2] === 'app.bsky.feed.post' ? `https://bsky.app/profile/${m[1]}/post/${m[3]}` : `https://bsky.app/profile/${m[1]}`;
   }
-  if (D.platform === 'x') return `https://x.com/${encodeURIComponent(user)}/status/${encodeURIComponent(id)}`;
+  if (D.platform === 'x') return `https://x.com/${enc(user)}/status/${enc(id)}`;
   return null;
 }
 function profileUrl(u) {
   if (D.platform === 'bluesky') return `https://bsky.app/profile/${u}`;
-  if (D.platform === 'x') return `https://x.com/${encodeURIComponent(u)}`;
+  if (D.platform === 'x') return `https://x.com/${enc(u)}`;
   return null;
 }
 const archive = url => url ? `https://web.archive.org/web/*/${url}` : null;
@@ -142,13 +172,12 @@ function keyInfo(k) {
     const at = v.slice(3), did = at.slice(5).split('/')[0];
     return { label: 'repost of', url: postUrl(at), text: 'post by ' + (U[did] ? who(did) : did) };
   }
-  if (v.startsWith('#')) return { label: 'hashtag', url: D.platform === 'bluesky' ? `https://bsky.app/hashtag/${encodeURIComponent(v.slice(1))}`
-    : D.platform === 'x' ? `https://x.com/hashtag/${encodeURIComponent(v.slice(1))}` : null, text: v };
+  if (v.startsWith('#')) return { label: 'hashtag', url: D.platform === 'bluesky' ? `https://bsky.app/hashtag/${enc(v.slice(1))}`
+    : D.platform === 'x' ? `https://x.com/hashtag/${enc(v.slice(1))}` : null, text: v };
   if (v.startsWith('@')) return { label: 'mention', url: profileUrl(v.slice(1)), text: v.startsWith('@did:') ? who(v.slice(1)) : v };
   return { label: k.kind, url: null, text: v };
 }
 const keyHref = k => `#/${enc(name)}/k/${k.kind}/${enc(k.key)}`;
-const enc = encodeURIComponent;
 
 // ---------- data loading ----------
 // script tags, not fetch, so the page also works from file://; ?time skips the browser cache (monitor.py rewrites the files)
@@ -168,67 +197,118 @@ function index() {
   }
 }
 
-// ---------- layout (same as the project page: a page top, then sections with a heading column) ----------
-const NAMES = { bluesky: 'Bluesky, the last 24 hours of the live firehose', iowa: 'Bluesky, Iowa and election accounts, Oct 27 – Nov 10 2026',
-  x: 'X (Twitter), Russian IRA troll accounts, 2012–2018' };
-const block = (title, desc, body) => `<section class="block"><div class="side"><h2>${title}</h2>${desc ? `<p>${desc}</p>` : ''}</div><div>${body}</div></section>`;
+// ---------- layout helpers ----------
+const NAMES = { bluesky: 'Bluesky: last 24 hours, live', iowa: 'Bluesky: Iowa election accounts', x: 'X: Russian IRA trolls' };
+const ABOUT = { bluesky: 'Posts from the last 24 hours of the public Bluesky firehose.',
+  iowa: 'Bluesky accounts around the Iowa election, Oct 27 – Nov 10 2026.', x: 'Russian Internet Research Agency troll accounts on X, 2012–2018 (FiveThirtyEight).' };
+const panel = (title, sub, body) => `<section class="panel"><h2>${title}</h2>${sub ? `<p class="sub">${sub}</p>` : ''}${body}</section>`;
 const crumb = (...links) => `<p class="crumb"><a href="#/${enc(name)}">All groups</a>${links.map(l => ' / ' + l).join('')}</p>`;
-const stats = items => `<div class="stats">${items.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+const summary = items => `<div class="summary">${items.map(([v, l]) => `<div><b>${v}</b>${l}</div>`).join('')}</div>`;
+const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join('');
+const setFilters = html => $('filters').innerHTML = html;
 
 // ---------- views ----------
 function viewList() {
   const kinds = [...new Set(D.groups.map(g => g.kind).filter(Boolean))];
   const tags = [...new Set(D.groups.flatMap(g => g.tags))];
-  const sel = (id, label, vals) => vals.length ? `<select id="${id}"><option value="">${label}: all</option>${vals.map(v => `<option>${esc(v)}</option>`).join('')}</select>` : '';
-  $('app').innerHTML = `<div class="top"><p class="kicker">${esc(NAMES[name] || name)}</p>
-    <h1>Find accounts that act together.</h1>
-    <p class="lead">Each group is a set of accounts that share rare traces: the same text, links, reply targets and timing. Open a group to see the evidence, then check every post at its source.</p>
-    ${stats([[num(D.posts), 'posts by scored accounts'], [num(D.active_users), 'accounts scored'], [num(D.n_groups), 'groups found'],
-             [D.groups.length, 'groups shown'], [`${day(D.start)} – ${day(D.end)}`, 'time span']])}</div>
-    ${block('Groups', 'Ranked by shared content per member. Tags come from public account facts. Click a row to open the evidence.',
-      `<div class="row" style="margin-bottom:14px">${sel('fk', 'Kind', kinds)}${sel('ft', 'Tag', tags)}</div>
-      <div class="scroll"><table><thead><tr><th>#</th><th>kind / tags</th><th>accounts</th><th>score</th><th>schedule</th><th>top shared traces</th></tr></thead><tbody id="rows"></tbody></table></div>
-      <p class="muted" style="font-size:14px">Made ${esc(D.generated)} from <code>${esc(D.source)}</code>.</p>`)}`;
+  const sel = (id, label, vals) => vals.length ? `<label>${label} <select id="${id}"><option value="">All</option>${vals.map(v => `<option>${esc(v)}</option>`).join('')}</select></label>` : '';
+  setFilters(sel('fk', 'Kind', kinds) + sel('ft', 'Tag', tags));
+  $('app').innerHTML = `${summary([[num(D.posts), 'posts'], [num(D.active_users), 'accounts scored'], [num(D.n_groups), 'groups found'],
+      [`${day(D.start)} – ${day(D.end)}`, 'time span']])}
+    <section class="panel"><div class="ghead"><div><h2>Groups</h2><p class="muted" style="font-size:14px;margin:0">${esc(ABOUT[name] || '')} Ranked by shared content per member. Select a group to see its evidence.</p></div></div>
+      <div class="scroll"><table><thead><tr><th class="n">#</th><th>Kind</th>${tags.length ? '<th>Tags</th>' : ''}<th class="n">Accounts</th><th class="n">Score</th><th class="n">Schedule</th><th>Top shared trace</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <div class="pager" id="pager"></div></section>
+    <p class="muted" style="font-size:13px">Showing the top ${D.groups.length} of ${num(D.n_groups)} groups. Data made ${esc(D.generated)}.</p>`;
   const draw = () => {
     const fk = $('fk')?.value, ft = $('ft')?.value;
-    $('rows').innerHTML = D.groups.filter(g => (!fk || g.kind === fk) && (!ft || g.tags.includes(ft))).map(g => `
-      <tr class="click" data-g="${g.g}"><td class="n">${g.g}</td><td><span class="kind">${esc(g.kind)}</span><br>${tagPills(g.tags)}</td>
-      <td class="n">${g.size}</td><td class="n">${g.score.toFixed(2)}</td><td class="n">${g.sched_sim.toFixed(2)}</td>
-      <td>${g.keys.slice(0, 2).map(k => { const i = keyInfo(k); return `<div><span class="muted">${esc(i.label)} ×${k.users}:</span> ${esc(i.text.slice(0, 110))}</div>`; }).join('')}</td></tr>`).join('');
+    const rows = D.groups.filter(g => (!fk || g.kind === fk) && (!ft || g.tags.includes(ft)));
+    const pages = Math.max(1, Math.ceil(rows.length / PER_PAGE)); page = Math.min(page, pages - 1);
+    $('rows').innerHTML = rows.slice(page * PER_PAGE, (page + 1) * PER_PAGE).map(g => { const k = g.keys[0], i = k && keyInfo(k);
+      return `<tr class="click" data-g="${g.g}" tabindex="0"><td class="n">${g.g}</td><td class="kind">${esc(g.kind || '')}</td>${tags.length ? `<td>${tagPills(g.tags)}</td>` : ''}
+      <td class="n">${g.size}</td><td class="n">${g.score.toFixed(1)}</td><td class="n">${g.sched_sim.toFixed(2)}</td>
+      <td class="trace">${i ? `<div title="${esc(i.text.slice(0, 300))}"><span class="muted">${esc(i.label)} ×${k.users}</span> ${esc(i.text.slice(0, 160))}</div>` : ''}</td></tr>`; }).join('')
+      || '<tr><td colspan="7" class="muted">No groups match these filters.</td></tr>';
+    $('pager').innerHTML = `<span>${rows.length ? page * PER_PAGE + 1 : 0}–${Math.min(rows.length, (page + 1) * PER_PAGE)} of ${rows.length}</span>
+      <button id="prev" ${page ? '' : 'disabled'}>Previous</button><button id="next" ${page < pages - 1 ? '' : 'disabled'}>Next</button>`;
+    $('prev').onclick = () => { page--; draw(); }; $('next').onclick = () => { page++; draw(); };
   };
-  for (const id of ['fk', 'ft']) $(id)?.addEventListener('change', draw);
-  $('rows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) location.hash = `#/${enc(name)}/g/${tr.dataset.g}`; });
+  for (const id of ['fk', 'ft']) $(id)?.addEventListener('change', () => { page = 0; draw(); });
+  const open = tr => { if (tr) location.hash = `#/${enc(name)}/g/${tr.dataset.g}`; };
+  $('rows').addEventListener('click', e => open(e.target.closest('tr[data-g]')));
+  $('rows').addEventListener('keydown', e => { if (e.key === 'Enter') open(e.target.closest('tr[data-g]')); });
   draw();
 }
-const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join(' ');
 
 function viewGroup(n) {
+  setFilters('');
   const g = D.groups.find(x => x.g === +n);
-  if (!g) return $('app').innerHTML = `<div class="top">${crumb()}<p class="lead">No such group.</p></div>`;
-  const shares = Object.entries(g.kind_shares).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
-  $('app').innerHTML = `<div class="top">${crumb()}<p class="kicker">${esc(g.kind || 'group')} · ${g.size} accounts · score ${g.score.toFixed(2)}</p>
-    <h1>Group ${g.g}</h1>
-    <p class="lead">${esc(g.why)}</p>
-    <div class="row" style="margin-bottom:22px">${tagPills(g.tags)}${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">topic: ${esc(shares)}</span>` : ''}</div>
-    <div class="btns"><span class="muted" style="font-size:15px">Export</span>
-      <button class="btn" data-x="members">Members CSV</button><button class="btn" data-x="evidence">Evidence CSV</button>
-      <button class="btn" data-x="graphml">Graph (GraphML)</button><button class="btn" data-x="json">Full JSON</button></div></div>
-    ${block('Evidence', 'Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used the trace. Click "pivot" to see other groups with it.',
-      `<div id="keys">${g.keys.slice(0, 60).map(keyBlock).join('')}</div>${g.keys.length > 60 ? `<p class="muted">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}`)}
-    ${block('Timeline', 'One row per account, one dot per post. Amber posts share a trace with another member. Vertical lines of dots are bursts.', '<div id="tl"></div>')}
-    ${block('Weekly schedule', 'Posts by weekday and hour, in UTC (X data: hours as stored). People sleep, so a real person has quiet hours.', '<div id="heat"></div><p id="tz" style="margin-top:14px"></p>')}
-    ${block('Strongest links', 'Account pairs with the most shared traces. Values are weighted, so rare traces count more.', `<div class="scroll">${pairTable(g.edges.slice(0, 15))}</div>`)}
-    ${block('Members', 'Public account facts. "Gone" accounts are deleted, deactivated or taken down.', `<div class="scroll">${memberTable(g)}</div>`)}`;
+  if (!g) return $('app').innerHTML = `${crumb()}<p class="muted">No such group.</p>`;
+  const shares = Object.entries(g.kind_shares || {}).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
+  $('app').innerHTML = `${crumb(`Group ${g.g}`)}
+    <div class="ghead"><div><h1>Group ${g.g}</h1><p>${esc(g.why)}</p>
+      <div class="row" style="margin-top:8px">${g.kind ? `<span class="pill">${esc(g.kind)}</span>` : ''}${tagPills(g.tags)}${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">topic: ${esc(shares)}</span>` : ''}</div></div>
+      <div class="exports">Export <button data-x="members">Members CSV</button><button data-x="evidence">Evidence CSV</button><button data-x="graphml">GraphML</button><button data-x="json">JSON</button></div></div>
+    ${summary([[g.size, 'accounts'], [g.score.toFixed(1), 'score'], [g.sched_sim.toFixed(2), 'schedule match'], [g.keys.length, 'shared traces']])}
+    ${panel('Network', 'Accounts linked by the traces they share. Thicker lines share more. Hover an account, click to open it.', `<div class="legend" id="netlegend"></div><div class="net" id="net"></div>`)}
+    ${panel('Evidence', 'Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used the trace.',
+      `<div id="keys">${g.keys.slice(0, 10).map(keyBlock).join('')}</div>${more('morekeys', Math.min(g.keys.length, 60) - 10, 'traces')}${g.keys.length > 60 ? `<p class="muted" style="font-size:13px">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}`)}
+    <div class="grid2">
+      ${panel('Timeline', 'One row per account, one dot per post. Amber posts share a trace with another member.', '<div id="tl"></div>')}
+      ${panel('Weekly schedule', 'Posts by weekday and hour (UTC; X data: hours as stored). Real people have quiet hours.', '<div id="heat"></div><p id="tz" style="font-size:13px;margin:10px 0 0"></p>')}
+    </div>
+    ${panel('Strongest links', 'Account pairs with the most shared traces, weighted so rare traces count more.', `<div class="scroll">${pairTable(g.edges.slice(0, 15))}</div>`)}
+    ${panel('Members', 'Public account facts. "Gone" accounts were deleted, deactivated or taken down.', `<div class="scroll" id="members">${memberTable(g, 25)}</div>${more('moremembers', g.members.length - 25, 'members')}`)}`;
+  $('morekeys')?.addEventListener('click', e => { $('keys').innerHTML = g.keys.slice(0, 60).map(keyBlock).join(''); e.target.remove(); });
+  $('moremembers')?.addEventListener('click', e => { $('members').innerHTML = memberTable(g); e.target.remove(); });
   document.querySelectorAll('[data-x]').forEach(b => b.onclick = () => exportGroup(g, b.dataset.x));
+  network(g);
   $('tl').innerHTML = timeline(g);
   heat(g.schedule);
 }
 
+// ---------- network canvas (force layout, like Coordiscope) ----------
+function network(g) {
+  const el = $('net'), W = Math.max(300, el.clientWidth), H = el.clientHeight;
+  const ids = g.members.map(m => m.id), at = new Map(ids.map((id, i) => [id, i]));
+  // keep each account's strongest links (not just the strongest overall), so the picture shows structure, not one blob
+  const kept = new Array(ids.length).fill(0), edges = [];
+  for (const e of [...g.edges].sort((a, b) => b.w - a.w)) {
+    if (!at.has(e.u) || !at.has(e.v)) continue;
+    const s = at.get(e.u), t = at.get(e.v);
+    if ((kept[s] < 3 || kept[t] < 3) && edges.length < 500) { edges.push({ s, t, w: e.w }); kept[s]++; kept[t]++; }
+  }
+  const n = ids.length, maxW = Math.max(...edges.map(e => e.w), 1e-9);
+  const truth = m => m.category ?? (m.label === true ? 'Labeled propaganda' : m.label === false ? 'Not labeled' : null);
+  const cats = {}; g.members.forEach(m => { const c = truth(m); if (c) cats[c] = (cats[c] || 0) + 1; });
+  const top = Object.keys(cats).sort((a, b) => cats[b] - cats[a]).slice(0, 3), pal = ['var(--series-1)', 'var(--series-2)', 'var(--series-3)'];
+  const color = m => { const c = truth(m); return c == null ? 'var(--series-1)' : top.includes(c) ? pal[top.indexOf(c)] : 'var(--other)'; };
+  $('netlegend').innerHTML = top.length ? top.map((c, i) => `<span><i style="background:${pal[i]}"></i>${esc(c)}</span>`).join('') +
+    (Object.keys(cats).length > 3 ? '<span><i style="background:var(--other)"></i>Other</span>' : '') : '';
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  const P = ids.map(() => ({ x: W / 2 + (rnd() - .5) * W * .6, y: H / 2 + (rnd() - .5) * H * .6 }));
+  const k = Math.sqrt(W * H / Math.max(n, 1)) * .55, iters = n > 150 ? 150 : 300;
+  for (let it = 0; it < iters; it++) { const cool = 1 - it / iters, F = P.map(() => [0, 0]);
+    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const dx = P[i].x - P[j].x, dy = P[i].y - P[j].y, f = k * k / (dx * dx + dy * dy + .01) * .05;
+      F[i][0] += dx * f; F[i][1] += dy * f; F[j][0] -= dx * f; F[j][1] -= dy * f; }
+    for (const e of edges) { const a = P[e.s], b = P[e.t], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) + .01, f = (d - k) / d * .02 * (.4 + .6 * e.w / maxW);
+      F[e.s][0] += dx * f; F[e.s][1] += dy * f; F[e.t][0] -= dx * f; F[e.t][1] -= dy * f; }
+    P.forEach((p, i) => { F[i][0] += (W / 2 - p.x) * .004; F[i][1] += (H / 2 - p.y) * .004;
+      p.x += Math.max(-20, Math.min(20, F[i][0])) * cool; p.y += Math.max(-20, Math.min(20, F[i][1])) * cool; }); }
+  const xs = P.map(p => p.x), ys = P.map(p => p.y), pad = 20, a0 = Math.min(...xs), a1 = Math.max(...xs), b0 = Math.min(...ys), b1 = Math.max(...ys);
+  const sc = Math.min((W - 2 * pad) / ((a1 - a0) || 1), (H - 2 * pad) / ((b1 - b0) || 1));
+  P.forEach(p => { p.x = W / 2 + (p.x - (a0 + a1) / 2) * sc; p.y = H / 2 + (p.y - (b0 + b1) / 2) * sc; });
+  const deg = new Array(n).fill(0); edges.forEach(e => { deg[e.s]++; deg[e.t]++; });
+  let s = edges.map(e => `<line x1="${P[e.s].x.toFixed(1)}" y1="${P[e.s].y.toFixed(1)}" x2="${P[e.t].x.toFixed(1)}" y2="${P[e.t].y.toFixed(1)}" stroke="var(--text-muted)" stroke-opacity="${(.1 + .45 * e.w / maxW).toFixed(2)}" stroke-width="${(1 + 1.5 * e.w / maxW).toFixed(1)}"/>`).join('');
+  s += g.members.map((m, i) => `<a href="#/${enc(name)}/u/${enc(m.id)}"><circle data-tip="${esc(`<b>${esc(who(m.id))}</b><br>${deg[i]} links · ${m.posts} posts here` + (truth(m) ? `<br><span class="m">${esc(truth(m))}</span>` : ''))}" cx="${P[i].x.toFixed(1)}" cy="${P[i].y.toFixed(1)}" r="${(4 + Math.min(7, Math.sqrt(deg[i]))).toFixed(1)}" fill="${color(m)}" stroke="var(--panel)" stroke-width="1.5"/></a>`).join('');
+  el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Network of group ${g.g}">${s}</svg>
+    <div class="netinfo"><b>${n}</b> accounts · <b>${edges.length}</b> strongest links shown</div>`;
+}
+
 function keyBlock(k) {
   const i = keyInfo(k), others = (K[k.kind + '\u0000' + k.key] || []).length - 1;
-  return `<div class="key"><div class="row"><span class="kind"><b>${esc(i.label)}</b></span><span class="pill">${k.users} members</span>
+  return `<div class="key"><div class="row"><b>${esc(i.label)}</b><span class="pill">${k.users} members</span>
       <span class="pill">${k.fan} in all data</span>${others > 0 ? `<a class="pill" href="${keyHref(k)}">also in ${others} other group${others > 1 ? 's' : ''}</a>` : `<a class="pill" href="${keyHref(k)}">pivot</a>`}
-      <span class="muted" style="font-size:14px">${when(k.t0)} → ${when(k.t1)}</span></div>
+      <span class="muted" style="font-size:13px">${when(k.t0)} → ${when(k.t1)}</span></div>
     <div class="txt">${ext(i.url, esc(i.text.slice(0, 400)))}</div>
     ${k.posts ? `<details><summary>${k.posts.length} posts</summary><div class="posts">${k.posts.map(postLine).join('')}</div></details>` : ''}</div>`;
 }
@@ -241,15 +321,16 @@ function postLine(p) {
 function pairTable(edges, self) {
   if (!edges.length) return '<p class="muted">None.</p>';
   const acc = u => `<td><a href="#/${enc(name)}/u/${enc(u)}">${esc(who(u))}</a></td>`;
-  return `<table><tr>${self ? '<th>partner</th>' : '<th>account</th><th>account</th>'}<th>text</th><th>items</th><th>replies</th><th>60 s</th><th>sched</th></tr>${edges.map(e => `
+  return `<table><tr>${self ? '<th>Partner</th>' : '<th>Account</th><th>Account</th>'}<th class="n">Text</th><th class="n">Items</th><th class="n">Replies</th><th class="n">60 s</th><th class="n">Schedule</th></tr>${edges.map(e => `
     <tr>${self ? acc(e.u === self ? e.v : e.u) : acc(e.u) + acc(e.v)}
     <td class="n">${e.dup.toFixed(1)}</td><td class="n">${e.item.toFixed(1)}</td><td class="n">${e.tgt.toFixed(1)}</td><td class="n">${e.fast.toFixed(1)}</td><td class="n">${e.sched.toFixed(2)}</td></tr>`).join('')}</table>`;
 }
-function memberTable(g) {
+const more = (id, n, what) => n > 0 ? `<button id="${id}" style="margin-top:10px">Show ${n} more ${what}</button>` : '';
+function memberTable(g, limit = Infinity) {
   const bs = D.platform === 'bluesky', truth = g.members.some(m => 'label' in m || 'category' in m);
-  return `<table><tr><th>account</th>${bs ? '<th>name / bio</th><th>created</th><th>followers</th><th>posts (all)</th>' : ''}
-    <th>posts here</th><th>first → last here</th>${truth ? '<th>known</th>' : ''}<th></th></tr>${g.members.map(m => `
-    <tr><td><a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))}</a><br><span class="mono muted">${esc(m.id)}</span></td>
+  return `<table><tr><th>Account</th>${bs ? '<th>Name / bio</th><th>Created</th><th class="n">Followers</th><th class="n">Posts (all)</th>' : ''}
+    <th class="n">Posts here</th><th>First → last here</th>${truth ? '<th>Known</th>' : ''}<th></th></tr>${g.members.slice(0, limit).map(m => `
+    <tr><td><a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))}</a>${bs ? `<br><span class="mono muted">${esc(m.id)}</span>` : ''}</td>
     ${bs ? (m.gone ? '<td colspan="4"><span class="pill bad">gone from public API</span></td>' :
       `<td><b>${esc(m.name)}</b><br><span class="muted">${esc((m.bio || '').slice(0, 120))}</span></td><td>${esc(m.created)}</td><td class="n">${num(m.followers)}</td><td class="n">${num(m.total_posts)}</td>`) : ''}
     <td class="n">${m.posts}</td><td class="muted">${day(m.first)} → ${day(m.last)}</td>
@@ -262,76 +343,78 @@ function timeline(g) {
   const first = {};
   for (const [u, t, s] of g.timeline) if (s && (first[u] === undefined || t < first[u])) first[u] = t;
   const rows = [...new Set(g.timeline.map(x => x[0]))].sort((a, b) => (first[a] ?? 9e12) - (first[b] ?? 9e12));
-  const shown = rows.slice(0, 80), y = Object.fromEntries(shown.map((u, i) => [u, i]));
-  const ts = g.timeline.map(x => x[1]), t0 = Math.min(...ts), t1 = Math.max(...ts), W = 1000, L = 4, R = 4, rh = 7;
+  const shown = rows.slice(0, 60), y = Object.fromEntries(shown.map((u, i) => [u, i]));
+  const ts = g.timeline.map(x => x[1]), t0 = Math.min(...ts), t1 = Math.max(...ts), W = 600, L = 4, R = 4, rh = 6;
   const H = shown.length * rh + 24, X = t => L + (t - t0) / Math.max(t1 - t0, 1) * (W - L - R);
   const dots = g.timeline.filter(x => x[0] in y).sort((a, b) => a[2] - b[2]).map(([u, t, s]) =>
-    `<circle cx="${X(t).toFixed(1)}" cy="${y[u] * rh + 4}" r="${s ? 2.4 : 1.6}" fill="${s ? 'var(--series-2)' : 'var(--other)'}"><title>${esc(who(g.members[u].id))} ${when(t)}</title></circle>`).join('');
-  const ticks = [0, .25, .5, .75, 1].map(f => { const t = t0 + f * (t1 - t0), x = X(t);
-    return `<line x1="${x}" x2="${x}" y1="0" y2="${H - 18}" stroke="var(--grid)"/><text x="${x}" y="${H - 4}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${when(t).slice(5, 16)}</text>`; }).join('');
+    `<circle cx="${X(t).toFixed(1)}" cy="${y[u] * rh + 4}" r="${s ? 2.2 : 1.5}" fill="${s ? 'var(--series-2)' : 'var(--other)'}"><title>${esc(who(g.members[u].id))} ${when(t)}</title></circle>`).join('');
+  const ticks = [0, .5, 1].map(f => { const t = t0 + f * (t1 - t0), x = X(t);
+    return `<line x1="${x}" x2="${x}" y1="0" y2="${H - 18}" stroke="var(--grid)"/><text x="${x}" y="${H - 4}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${when(t).slice(0, 16)}</text>`; }).join('');
   return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${ticks}${dots}</svg>` +
-    (rows.length > shown.length ? `<p class="muted">First ${shown.length} of ${rows.length} accounts shown.</p>` : '');
+    (rows.length > shown.length ? `<p class="muted" style="font-size:13px">First ${shown.length} of ${rows.length} accounts shown.</p>` : '');
 }
 
 function heat(h) {
   const max = Math.max(...h, 1), days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  let s = '<div class="l"></div>' + Array.from({ length: 24 }, (_, i) => `<div class="l">${i % 3 ? '' : i}</div>`).join('');
+  let s = '<div class="l"></div>' + Array.from({ length: 24 }, (_, i) => `<div class="l">${i % 6 ? '' : i}</div>`).join('');
   days.forEach((d, di) => { s += `<div class="l">${d}</div>`; for (let i = 0; i < 24; i++) { const v = h[di * 24 + i];
     s += `<div title="${d} ${i}:00 UTC: ${v} posts" style="background:rgba(144,133,233,${v ? .12 + .88 * v / max : 0.05})"></div>`; } });
   $('heat').innerHTML = `<div class="heat">${s}</div>`;
   // quietest 6 hours of the day; if that is night (01–07 local), local time = UTC + (4 - centre)
   const byHour = Array.from({ length: 24 }, (_, i) => days.reduce((a, _, d) => a + h[d * 24 + i], 0));
-  if (D.end - D.start < 3 * 86400) return $('tz').textContent = 'The data covers less than 3 days, so the quiet hours do not show a time zone.';
+  if (D.end - D.start < 3 * 86400) return $('tz').textContent = 'The data covers less than 3 days, so quiet hours do not show a time zone.';
   if (byHour.reduce((a, b) => a + b, 0) < 50) return $('tz').textContent = 'Too few posts to guess a time zone.';
   let best = 0, bv = Infinity;
   for (let i = 0; i < 24; i++) { const v = [0, 1, 2, 3, 4, 5].reduce((a, j) => a + byHour[(i + j) % 24], 0); if (v < bv) { bv = v; best = i; } }
   let off = ((4 - (best + 3)) % 24 + 24) % 24; if (off > 12) off -= 24;
   const pad = x => String(x).padStart(2, '0');
-  $('tz').textContent = `Quietest 6 hours: ${pad(best)}:00–${pad((best + 6) % 24)}:00 UTC. If that is night, the accounts keep the hours of about UTC${off >= 0 ? '+' : '−'}${Math.abs(off)}. This is a hint, not proof.`;
+  $('tz').textContent = `Quietest 6 hours: ${pad(best)}:00–${pad((best + 6) % 24)}:00 UTC. If that is night, the accounts keep the hours of about UTC${off >= 0 ? '+' : '−'}${Math.abs(off)}. A hint, not proof.`;
 }
 
 function viewUser(id) {
+  setFilters('');
   const e = U[id];
-  if (!e) return $('app').innerHTML = `<div class="top">${crumb()}<p class="lead">${esc(id)} is not in a shown group.</p></div>`;
+  if (!e) return $('app').innerHTML = `${crumb()}<p class="muted">${esc(id)} is not in a shown group.</p>`;
   const { m, g } = e, partners = g.edges.filter(x => x.u === id || x.v === id).slice(0, 20);
   const posts = g.keys.flatMap(k => (k.posts || []).filter(p => p.u === id).map(p => ({ p, k })));
-  $('app').innerHTML = `<div class="top">${crumb(`<a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a>`)}<p class="kicker mono">${esc(id)}</p>
-    <h1>${esc(who(id))}</h1>
-    ${m.gone ? '<p class="lead"><span class="pill bad">gone from public API</span></p>' : m.name || m.bio ? `<p class="lead"><b>${esc(m.name)}</b> ${esc(m.bio)}</p>` : ''}
-    <div class="btns">${profileUrl(id) ? `<a class="btn primary" href="${esc(profileUrl(id))}" target="_blank" rel="noopener noreferrer">Open profile</a>
-      <a class="btn" href="${esc(archive(profileUrl(id)))}" target="_blank" rel="noopener noreferrer">Archive</a>` : ''}
-      ${D.platform === 'bluesky' ? `<a class="btn" href="https://plc.directory/${esc(id)}/log/audit" target="_blank" rel="noopener noreferrer">Handle history</a>` : ''}</div>
-    ${stats([...(m.created ? [[esc(m.created), 'created'], [num(m.followers), 'followers']] : []), [m.posts, 'posts in this data'],
-             [`${day(m.first)} → ${day(m.last)}`, 'active here'], [`<a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a>`, `${g.size} accounts`]])}</div>
-    ${block('Closest partners', 'Members of the same group with the most shared traces with this account.', `<div class="scroll">${pairTable(partners, id)}</div>`)}
-    ${block('Posts that share a trace', 'Only posts behind the top traces of the group.',
-      posts.length ? posts.map(({ p, k }) => `<div class="key"><span class="kind"><b>${esc(keyInfo(k).label)}</b></span> <a href="${keyHref(k)}">${esc(keyInfo(k).text.slice(0, 80))}</a><div class="posts">${postLine(p)}</div></div>`).join('') : '<p class="muted">None in the top traces.</p>')}`;
+  $('app').innerHTML = `${crumb(`<a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a>`, esc(who(id)))}
+    <div class="ghead"><div><h1>${esc(who(id))}</h1>${D.platform === 'bluesky' ? `<p class="mono muted">${esc(id)}</p>` : ''}
+      ${m.gone ? '<p><span class="pill bad">gone from public API</span></p>' : m.name || m.bio ? `<p><b>${esc(m.name)}</b> ${esc(m.bio)}</p>` : ''}</div>
+      <div class="exports">${profileUrl(id) ? `${ext(profileUrl(id), 'Open profile')} · ${ext(archive(profileUrl(id)), 'Archive')}` : ''}
+      ${D.platform === 'bluesky' ? ' · ' + ext(`https://plc.directory/${id}/log/audit`, 'Handle history') : ''}</div></div>
+    ${summary([...(m.created ? [[esc(m.created), 'created'], [num(m.followers), 'followers']] : []), [m.posts, 'posts in this data'],
+             [`${day(m.first)} → ${day(m.last)}`, 'active here'], [`<a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a>`, `${g.size} accounts`]])}
+    ${panel('Closest partners', 'Members of the same group with the most shared traces with this account.', `<div class="scroll">${pairTable(partners, id)}</div>`)}
+    ${panel('Posts that share a trace', 'Only posts behind the top traces of the group.',
+      posts.length ? posts.map(({ p, k }) => `<div class="key"><b>${esc(keyInfo(k).label)}</b> <a href="${keyHref(k)}">${esc(keyInfo(k).text.slice(0, 80))}</a><div class="posts">${postLine(p)}</div></div>`).join('') : '<p class="muted">None in the top traces.</p>')}`;
 }
 
 function viewKey(kind, key) {
+  setFilters('');
   const hits = K[kind + '\u0000' + key] || [];
-  if (!hits.length) return $('app').innerHTML = `<div class="top">${crumb()}<p class="lead">No shown group shares this trace.</p></div>`;
+  if (!hits.length) return $('app').innerHTML = `${crumb()}<p class="muted">No shown group shares this trace.</p>`;
   const i = keyInfo(hits[0].k);
-  $('app').innerHTML = `<div class="top">${crumb()}<p class="kicker">Shared trace: ${esc(i.label)}</p>
-    <h1 style="font-size:clamp(28px,3.4vw,42px)">${ext(i.url, esc(i.text.slice(0, 300)))}</h1>
-    ${stats([[hits[0].k.fan, 'scored accounts used it'], [hits.length, `shown group${hits.length > 1 ? 's' : ''} share it`]])}</div>
-    ${block('Groups', 'Every shown group whose members share this trace.', `<div class="scroll"><table><tr><th>group</th><th>kind / tags</th><th>members who used it</th><th>first → last</th></tr>${hits.map(({ g, k }) => `
-      <tr class="click" onclick="location.hash='#/${enc(name)}/g/${g.g}'"><td class="n">${g.g}</td><td><span class="kind">${esc(g.kind)}</span> ${tagPills(g.tags)}</td>
+  $('app').innerHTML = `${crumb('Shared trace')}<div class="ghead"><div><p class="muted" style="margin:0">${esc(i.label)}</p><h1 style="font-size:24px">${ext(i.url, esc(i.text.slice(0, 300)))}</h1></div></div>
+    ${summary([[hits[0].k.fan, 'scored accounts used it'], [hits.length, `shown group${hits.length > 1 ? 's' : ''} share it`]])}
+    ${panel('Groups', 'Every shown group whose members share this trace.', `<div class="scroll"><table><tr><th class="n">Group</th><th>Kind</th><th>Tags</th><th class="n">Members who used it</th><th>First → last</th></tr>${hits.map(({ g, k }) => `
+      <tr class="click" onclick="location.hash='#/${enc(name)}/g/${g.g}'"><td class="n">${g.g}</td><td class="kind">${esc(g.kind || '')}</td><td>${tagPills(g.tags)}</td>
       <td class="n">${k.users} of ${g.size}</td><td class="muted">${when(k.t0)} → ${when(k.t1)}</td></tr>`).join('')}</table></div>`)}
-    ${hits.some(h => h.k.posts) ? block('Posts', 'The posts behind this trace, per group.', hits.filter(h => h.k.posts).map(({ g, k }) =>
+    ${hits.some(h => h.k.posts) ? panel('Posts', 'The posts behind this trace, per group.', hits.filter(h => h.k.posts).map(({ g, k }) =>
       `<div class="key"><h3>Group ${g.g}</h3><div class="posts">${k.posts.map(postLine).join('')}</div></div>`).join('')) : ''}`;
 }
 
 function viewSearch(s) {
+  setFilters('');
   s = s.trim().toLowerCase().replace(/^@/, '');
   if (s.length < 2) return;
   const acc = Object.values(U).filter(({ m }) => [m.id, m.handle, m.name].some(v => v && String(v).toLowerCase().includes(s))).slice(0, 30);
   const keys = Object.values(K).map(h => h[0]).filter(({ k }) => [k.key, k.sample, keyInfo(k).text].some(v => v && v.toLowerCase().includes(s))).slice(0, 50);
-  $('app').innerHTML = `<div class="top">${crumb()}<p class="kicker">Search</p><h1>${esc(s)}</h1>
-    <p class="lead">Search covers the accounts and shared traces of the shown groups only.</p></div>
-    ${block(`Accounts (${acc.length})`, 'Handle, DID or display name.', `<div class="hits">${acc.map(({ m, g }) => `<a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))} <span class="muted">${esc(m.name || '')} · group ${g.g}</span></a>`).join('') || '<p class="muted">None.</p>'}</div>`)}
-    ${block(`Shared traces (${keys.length})`, 'Links, hashtags, mentions, reposts and same texts.', `<div class="hits">${keys.map(({ k }) => { const i = keyInfo(k);
-      return `<a href="${keyHref(k)}"><span class="kind">${esc(i.label)}</span> ${esc(i.text.slice(0, 120))} <span class="muted">· ${(K[k.kind + '\u0000' + k.key]).length} group(s)</span></a>`; }).join('') || '<p class="muted">None.</p>'}</div>`)}`;
+  $('app').innerHTML = `${crumb('Search')}<div class="ghead"><div><h1>“${esc(s)}”</h1><p class="muted">Search covers the accounts and shared traces of the shown groups.</p></div></div>
+    <div class="grid2">
+    ${panel(`Accounts (${acc.length})`, 'Handle, DID or display name.', `<div class="hits">${acc.map(({ m, g }) => `<a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))} <span class="muted">${esc(m.name || '')} · group ${g.g}</span></a>`).join('') || '<p class="muted">None.</p>'}</div>`)}
+    ${panel(`Shared traces (${keys.length})`, 'Links, hashtags, mentions, reposts and same texts.', `<div class="hits">${keys.map(({ k }) => { const i = keyInfo(k);
+      return `<a href="${keyHref(k)}"><span class="muted">${esc(i.label)}</span> ${esc(i.text.slice(0, 120))} <span class="muted">· ${(K[k.kind + '\u0000' + k.key]).length} group(s)</span></a>`; }).join('') || '<p class="muted">None.</p>'}</div>`)}
+    </div>`;
 }
 
 // ---------- exports ----------
@@ -369,12 +452,12 @@ ${g.edges.map(e => `<edge source="${xml(e.u)}" target="${xml(e.v)}">${attrs.map(
 async function route() {
   if (!window.DATASETS) await script('datasets.js').catch(() => {});
   const list = window.DATASETS || [];
-  if (!list.length) return $('app').innerHTML = '<div class="top"><p class="lead">No data. Run <code>uv run osint_site.py bluesky "data/live/*.parquet" 3</code>.</p></div>';
+  if (!list.length) return $('app').innerHTML = '<p class="muted">No data. Run <code>uv run osint_site.py bluesky "data/live/*.parquet" 3</code>.</p>';
   const [, ds, view, a, ...b] = location.hash.split('/');
   const want = ds ? decodeURIComponent(ds) : list[0];
   if (want !== name) {
-    D = await load(want); name = want; index();
-    $('ds').innerHTML = list.map(n => `<option ${n === name ? 'selected' : ''}>${esc(n)}</option>`).join('');
+    D = await load(want); name = want; index(); page = 0;
+    $('ds').innerHTML = list.map(n => `<option value="${esc(n)}" ${n === name ? 'selected' : ''}>${esc(NAMES[n] || n)}</option>`).join('');
   }
   scrollTo(0, 0);
   if (view !== 's') $('q').value = '';
@@ -386,8 +469,12 @@ async function route() {
 }
 $('ds').onchange = () => location.hash = '#/' + enc($('ds').value);
 $('q').onkeydown = e => { if (e.key === 'Enter' && $('q').value.trim()) location.hash = `#/${enc(name)}/s/${enc($('q').value.trim())}`; };
-// the project page exists only on the public site (docs/); hide its links elsewhere
-fetch('about.html', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; }).catch(() => ['about', 'about2'].forEach(id => $(id)?.remove()));
+const T = $('tip');
+document.addEventListener('mousemove', e => { const h = e.target.closest('[data-tip]');
+  if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
+  const r = T.getBoundingClientRect(); T.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, e.clientY + 14) + 'px'; });
+// the project pages exist only on the public site (docs/); hide their links elsewhere
+fetch('method.html', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; }).catch(() => document.querySelectorAll('.proj').forEach(a => a.remove()));
 addEventListener('hashchange', route);
 route().catch(e => $('app').textContent = 'Could not load the data: ' + e);
 </script>

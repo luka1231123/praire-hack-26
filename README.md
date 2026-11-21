@@ -140,7 +140,7 @@ It flags behavior, not opinions: a person checks the posts and decides.
 ## Website
 
 `docs/` is the website (GitHub Pages: Settings → Pages → main, `/docs`). The home page is the investigator.
-The project description is `docs/about.html`, where a dropdown switches between datasets. `docs/data.js` starts with the numbers above; to fill every chart, export each dataset:
+The site has three pages: Explore (`docs/index.html`, a copy of `osint/index.html`), Results (`docs/results.html`, charts per dataset from `docs/data.js`) and Method (`docs/method.html`). `docs/about.html` redirects to Method. `docs/data.js` starts with the numbers above; to fill every chart, export each dataset:
 
 ```bash
 uv run export_site.py telegram data/posts.parquet 20 0.2

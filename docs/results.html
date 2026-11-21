@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Results · Behind the Accounts</title>
+<meta name="description" content="How well Behind the Accounts finds known propaganda and troll networks, dataset by dataset.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap">
+<style>
+:root { color-scheme: dark; --bg: #14121a; --panel: #1b1824; --panel-2: #221e2d; --rule: #2e2a3a; --grid: #26222f;
+  --text-primary: #efecf6; --text-secondary: #c4bfd4; --text-muted: #8a849c;
+  --series-1: #9085e9; --series-2: #c98500; --series-3: #199e70; --other: #6e6880; --surface-1: #1b1824; --line: #2e2a3a;
+  --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); line-height: 1.5; font-size: 15px; -webkit-font-smoothing: antialiased; }
+a { color: var(--text-primary); text-underline-offset: 3px; text-decoration-color: var(--series-1); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+p { color: var(--text-secondary); }
+b, strong { color: var(--text-primary); font-weight: 700; }
+h1 { font-size: 30px; line-height: 1.1; letter-spacing: -.03em; font-weight: 800; margin: 0 0 8px; word-break: break-word; }
+h2 { font-size: 19px; letter-spacing: -.01em; font-weight: 700; margin: 0 0 4px; }
+h3 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.muted { color: var(--text-muted); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; color: var(--text-primary); }
+
+/* header, the same on every page */
+header.bar { position: sticky; top: 0; z-index: 20; background: rgba(20,18,26,.95); border-bottom: 1px solid var(--rule); }
+header.bar .wrap { display: flex; align-items: center; gap: 22px; height: 54px; }
+.brand { font-weight: 800; letter-spacing: -.02em; text-decoration: none; font-size: 16px; white-space: nowrap; }
+.tagline { color: var(--text-muted); font-size: 14px; white-space: nowrap; }
+header nav { display: flex; gap: 4px; margin-left: auto; }
+header nav a { color: var(--text-muted); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 4px; }
+header nav a:hover { color: var(--text-primary); background: var(--panel); }
+header nav a.on { color: var(--text-primary); background: var(--panel-2); }
+@media (max-width: 760px) { .tagline { display: none; } header nav { margin-left: 0; } }
+
+/* controls */
+select, input, button { background: var(--panel); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 10px; font: inherit; font-size: 14px; }
+select { padding-right: 30px; cursor: pointer; appearance: none; max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+button { cursor: pointer; } button:hover { border-color: var(--text-muted); }
+.controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 16px 0 12px; }
+.controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.controls .grow { flex: 1; min-width: 200px; }
+.controls .grow input { width: 100%; }
+.notice { font-size: 13px; color: var(--text-muted); padding: 0 0 14px; }
+.notice b { color: #e0b25c; font-weight: 500; }
+
+/* summary numbers */
+.summary { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin-bottom: 18px; }
+.summary div { font-size: 13px; color: var(--text-muted); }
+.summary b { display: block; font-size: 20px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* panels */
+.panel { background: var(--panel); border-radius: 6px; padding: 18px 20px; margin-bottom: 16px; }
+.panel > p.sub { font-size: 14px; color: var(--text-muted); margin: 0 0 14px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 3px; background: var(--panel-2); color: var(--text-muted); white-space: nowrap; text-decoration: none; margin: 1px 2px 1px 0; }
+a.pill:hover { color: var(--text-primary); }
+.pill.bad { color: var(--series-2); } .pill.ok { color: #3fc296; }
+
+/* tables */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 7px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.n { color: var(--text-primary); }
+.scroll { overflow-x: auto; }
+footer { padding: 28px 0 48px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--rule); margin-top: 32px; }
+footer a { color: var(--text-secondary); }
+#tip { position: fixed; pointer-events: none; background: var(--panel-2); border: 1px solid var(--rule); color: var(--text-primary);
+  padding: 7px 10px; border-radius: 4px; font-size: 13px; line-height: 1.4; opacity: 0; transition: opacity .1s; z-index: 50; max-width: 320px; }
+#tip .m { color: var(--text-muted); }
+
+/* results page */
+.ds-head { display: flex; gap: 20px; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; margin: 4px 0 14px; }
+.ds-head p { margin: 4px 0 0; max-width: 60em; }
+.pill.warn { color: #e0b25c; }
+.panel h2 + .sub, .panel .sub { font-size: 14px; color: var(--text-muted); margin: 0 0 14px; }
+.chart { width: 100%; height: 280px; position: relative; }
+.chart.short { height: 220px; }
+.chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.tick { fill: var(--text-muted); font-size: 12px; font-family: var(--font); }
+.dlabel { fill: var(--text-secondary); font-size: 13px; font-family: var(--font); }
+.dlabel.strong { fill: var(--text-primary); font-weight: 700; }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; }
+.legend i.dot { border-radius: 50%; }
+.placeholder { height: 100%; min-height: 140px; background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(144,133,233,.04) 10px 20px);
+  border-radius: 4px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); font-size: 14px; padding: 18px; line-height: 1.6; }
+.resultrow { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 24px; align-items: center; }
+.big { font-size: 52px; font-weight: 800; letter-spacing: -.04em; line-height: 1; }
+.accent { color: var(--series-2); }
+.cap { font-size: 14px; color: var(--text-muted); margin-top: 8px; line-height: 1.4; }
+@media (max-width: 900px) { .resultrow { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="brand" href="index.html">Behind the Accounts</a><span class="tagline">Find accounts that act together</span>
+  <nav><a href="index.html">Explore</a><a class="on" href="results.html">Results</a><a href="method.html">Method</a></nav>
+</div></header>
+<main class="wrap">
+  <div class="controls"><label>Dataset <select id="ds" aria-label="Dataset shown on this page"></select></label></div>
+  <div class="ds-head"><div><h1 id="ds-title"></h1><p id="ds-desc"></p></div><span class="pill" id="ds-pill"></span></div>
+  <div id="ds-stats"></div>
+
+  <section class="panel"><h2 id="res-title">Results</h2><p class="sub" id="res-lead"></p>
+    <div class="resultrow"><div><div class="big accent" id="res-big">—</div><div class="cap" id="res-cap"></div></div>
+      <div><div class="legend" id="prec-legend"></div><div class="chart" id="c-prec"></div></div></div></section>
+
+  <div class="grid2">
+    <section class="panel"><h2>Every group, by score</h2><p class="sub" id="scatter-sub"></p><div class="chart" id="c-scatter"></div></section>
+    <section class="panel"><h2 id="lift-title">Which shared traces matter most</h2><p class="sub" id="lift-sub"></p><div class="chart" id="c-lift"></div></section>
+  </div>
+
+  <section class="panel"><h2>Weekly schedule</h2><p class="sub" id="sched-sub">Average share of each account's posts by hour of the week, in the dataset's time zone (likely UTC). Brighter means busier.</p>
+    <div class="chart short" id="c-sched"></div></section>
+
+  <div class="grid2">
+    <section class="panel"><h2>Activity over time</h2><p class="sub" id="monthly-sub">Posts per month.</p><div class="legend" id="monthly-legend"></div><div class="chart" id="c-monthly"></div></section>
+    <section class="panel"><h2 id="bd-title">Where the posts are</h2><p class="sub" id="bd-sub"></p><div class="chart" id="c-breakdown"></div></section>
+  </div>
+</main>
+<footer><div class="wrap">Behind the Accounts, a prairehack26 project. <a href="method.html">How it works</a> · <a href="https://github.com/luka1231123/praire-hack-26">Code</a></div></footer>
+<div id="tip"></div>
+<script src="data.js"></script>
+<script>
+const ALL = window.DATASETS || {};
+const INFO = {
+  telegram: { desc: 'Comments from 13 Russian Telegram channels. Researchers labeled which accounts spread propaganda (Kireev et al., USENIX Security 2025), so we can check how many accounts in each found group are labeled.',
+    cmd: 'uv run export_site.py telegram data/posts.parquet 20 0.2' },
+  x: { desc: "Tweets from accounts run by Russia's Internet Research Agency, published by FiveThirtyEight. Every account is a troll, tagged with a role (RightTroll, LeftTroll, NewsFeed, HashtagGamer, ...). The test: do the groups we find match those real roles?",
+    cmd: 'uv run export_site.py x data/posts_x.parquet 20 5' },
+  bluesky: { desc: "Live posts from Bluesky's public firehose, a rolling 24-hour window. There is no answer key, so these groups are leads to investigate, not confirmed networks.",
+    cmd: 'uv run export_site.py bluesky "data/live/*.parquet" 3' },
+};
+let key = null, D = {};
+
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const C = { s1: css('--series-1'), s2: css('--series-2'), s3: css('--series-3'), other: css('--other'), grid: css('--grid'),
+  line: css('--line'), muted: css('--text-muted'), surf: css('--surface-1') };
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const fmt = n => n == null ? '—' : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n.toLocaleString();
+const pct = (x, d = 1) => x == null ? '—' : (x * 100).toFixed(d) + '%';
+const times = x => (x >= 10 ? Math.round(x) : x.toFixed(1)) + '×';
+const needs = () => `This chart fills in once we run<br><code>${esc((INFO[key] || {}).cmd || 'uv run export_site.py ' + key)}</code>`;
+const ph = (el, msg) => { el.innerHTML = `<div class="placeholder"><div>${msg || needs()}</div></div>`; };
+const size = el => [Math.max(240, el.clientWidth), Math.max(140, el.clientHeight)];
+const tip = html => ` data-tip="${esc(html)}"`;
+const svg = (el, W, H, s) => { el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">${s}</svg>`; };
+const legend = (id, items) => { const el = $(id); el.style.display = items.length ? '' : 'none';
+  el.innerHTML = items.map(([c, t, dot]) => `<span><i class="${dot ? 'dot' : ''}" style="background:${c}"></i>${esc(t)}</span>`).join(''); };
+function topRound(x, y, w, h, r) { r = Math.min(r, w / 2, h); if (h <= 0) return '';
+  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+function rightRound(x, y, w, h, r) { r = Math.min(r, h / 2, w); if (w <= 0) return '';
+  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`; }
+function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v || 1))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
+const isLab = () => D.truth === 'labels', isCat = () => D.truth === 'categories';
+
+/* ---------- hero + dataset header ---------- */
+function headline() {
+  const P = D.precision || [], o = D.overview || {};
+  if (isLab() && P.length && o.base_rate) { const p = P.find(r => r.k === 50) || P[0];
+    return [times(p.labeled / o.base_rate), `better than chance: ${pct(p.labeled)} of accounts in the top ${p.k} groups are labeled propaganda, vs ${pct(o.base_rate)} overall`]; }
+  if (isCat() && P.length) { const p = P[P.length - 1];
+    return [pct(p.purity, 0), `of accounts in found groups share their group's main troll role, vs ${pct(p.random, 0)} for random groups`]; }
+  return null;
+}
+/* ---------- activity over time ---------- */
+function drawMonthly() {
+  const el = $('c-monthly'), rows = D.monthly;
+  if (!rows || !rows.length) { legend('monthly-legend', []); return ph(el); }
+  const split = rows[0].labeled_posts != null;
+  legend('monthly-legend', split ? [[C.s2, 'By labeled propaganda accounts'], [C.s1, 'By other accounts']] : []);
+  $('monthly-sub').textContent = split ? 'Posts per month, split by whether the author is a labeled propaganda account.' : 'Posts per month.';
+  const [W, H] = size(el), m = { l: 52, r: 6, t: 8, b: 26 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = niceMax(Math.max(...rows.map(r => r.posts))), y = v => m.t + ih - v / max * ih;
+  const bw = iw / rows.length, gap = Math.min(2, bw * .25);
+  let s = '';
+  for (let i = 0; i <= 4; i++) { const v = max * i / 4;
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${C.grid}"/><text class="tick" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
+  const every = Math.ceil(rows.length / Math.max(2, Math.floor(iw / 80)));
+  rows.forEach((r, i) => {
+    const x = m.l + i * bw + gap / 2, w = Math.max(1, bw - gap), lp = split ? r.labeled_posts : 0, hl = lp / max * ih, ho = (r.posts - lp) / max * ih;
+    const t = `<b>${r.month}</b><br>${r.posts.toLocaleString()} posts` + (split ? `<br><span class="m">${pct(lp / r.posts)} by labeled accounts</span>` : '');
+    s += `<g${tip(t)}><rect x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>`;
+    const yl = m.t + ih - hl;
+    if (hl > 0) s += `<rect x="${x}" y="${yl}" width="${w}" height="${hl}" fill="${C.s2}"/>`;
+    if (ho > 0) s += `<path d="${topRound(x, yl - ho, w, Math.max(0, ho - (hl > 0 ? 2 : 0)), 3)}" fill="${C.s1}"/>`;
+    s += `</g>`;
+    if (i % every === 0) s += `<text class="tick" x="${x + w / 2}" y="${H - 6}" text-anchor="middle">${r.month}</text>`;
+  });
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="${C.line}"/>`;
+  svg(el, W, H, s);
+}
+
+/* ---------- breakdown by channel / category ---------- */
+function drawBreakdown() {
+  const el = $('c-breakdown'), B = D.breakdown;
+  if (!B) { $('bd-title').textContent = 'Where the posts are'; $('bd-sub').textContent = ''; el.style.height = ''; return ph(el); }
+  const ch = B.by === 'channel';
+  $('bd-title').textContent = ch ? 'Posts per channel' : 'Posts per account role';
+  $('bd-sub').textContent = ch && isLab() ? 'With the share written by labeled propaganda accounts.' : 'With the number of accounts.';
+  const rows = B.rows; el.style.height = Math.max(160, rows.length * 34 + 10) + 'px';
+  const [W, H] = size(el), m = { l: 200, r: 210, t: 4 }, iw = W - m.l - m.r, bh = (H - m.t) / rows.length, max = Math.max(...rows.map(r => r.posts));
+  let s = '';
+  rows.forEach((r, i) => { const y = m.t + i * bh, h = Math.min(20, bh - 10), yy = y + (bh - h) / 2, w = Math.max(2, r.posts / max * iw);
+    const extra = r.labeled_share != null ? `${pct(r.labeled_share)} labeled` : `${r.users.toLocaleString()} accounts`;
+    s += `<g${tip(`<b>${esc(r.name)}</b><br>${r.posts.toLocaleString()} posts · ${r.users.toLocaleString()} accounts` + (r.labeled_share != null ? `<br><span class="m">${pct(r.labeled_share)} by labeled accounts</span>` : ''))}>`;
+    s += `<rect x="0" y="${y}" width="${W}" height="${bh}" fill="transparent"/>`;
+    s += `<text class="dlabel" x="${m.l - 12}" y="${yy + h / 2 + 5}" text-anchor="end">${esc(r.name.length > 24 ? r.name.slice(0, 23) + '…' : r.name)}</text>`;
+    s += `<path d="${rightRound(m.l, yy, w, h, 4)}" fill="${C.s1}"/>`;
+    s += `<text class="dlabel" x="${m.l + w + 10}" y="${yy + h / 2 + 5}"><tspan class="dlabel strong">${fmt(r.posts)}</tspan>  ·  ${extra}</text></g>`; });
+  svg(el, W, H, s);
+}
+
+/* ---------- schedule heatmaps ---------- */
+const RAMP = ['#1e1b29', '#2b2552', '#3d3384', '#5446b5', '#7466d8', '#9f95ee', '#d6d1fa'];
+function rampColor(t) { t = Math.max(0, Math.min(1, t)); const p = t * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(p)), f = p - i;
+  const a = RAMP[i].match(/\w\w/g).map(h => parseInt(h, 16)), b = RAMP[i + 1].match(/\w\w/g).map(h => parseInt(h, 16));
+  return '#' + a.map((v, k) => Math.round(v + (b[k] - v) * f).toString(16).padStart(2, '0')).join(''); }
+function drawSchedule() {
+  const el = $('c-sched'), S = D.schedule;
+  if (!S || !S.length) return ph(el);
+  const [W, H] = size(el), days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], gapX = 48, lx = 36;
+  const pw = (W - gapX * (S.length - 1)) / S.length, cw = (pw - lx) / 24, ch = Math.min(24, (H - 70) / 7);
+  const max = Math.max(...S.flatMap(p => p.values));
+  let s = '';
+  S.forEach((p, pi) => { const ox = pi * (pw + gapX);
+    s += `<text class="dlabel strong" x="${ox + lx}" y="14">${esc(p.name)}</text>`;
+    for (let d = 0; d < 7; d++) { s += `<text class="tick" x="${ox + lx - 7}" y="${28 + d * ch + ch / 2 + 4}" text-anchor="end">${days[d]}</text>`;
+      for (let h = 0; h < 24; h++) { const v = p.values[d * 24 + h];
+        s += `<rect${tip(`<b>${esc(p.name)}</b><br>${days[d]} ${String(h).padStart(2, '0')}:00<br><span class="m">${pct(v, 2)} of posts</span>`)} x="${ox + lx + h * cw + 1}" y="${28 + d * ch + 1}" width="${Math.max(1, cw - 2)}" height="${ch - 2}" rx="2" fill="${rampColor(v / max)}"/>`; } }
+    for (const h of [0, 6, 12, 18]) s += `<text class="tick" x="${ox + lx + h * cw}" y="${28 + 7 * ch + 15}">${String(h).padStart(2, '0')}:00</text>`; });
+  const lgY = 28 + 7 * ch + 30, lgX = W - 210;
+  for (let i = 0; i < 40; i++) s += `<rect x="${lgX + i * 4}" y="${lgY}" width="4" height="9" fill="${rampColor(i / 39)}"/>`;
+  s += `<text class="tick" x="${lgX - 8}" y="${lgY + 9}" text-anchor="end">less</text><text class="tick" x="${lgX + 168}" y="${lgY + 9}">more</text>`;
+  svg(el, W, H, s);
+}
+
+/* ---------- signal lift ---------- */
+function drawLift() {
+  const el = $('c-lift'), L = D.lift;
+  if (!L || !L.signals) { $('lift-title').textContent = 'Which shared traces matter most';
+    $('lift-sub').textContent = '';
+    return ph(el, isCat() ? 'This needs propaganda / not-propaganda labels per account.<br>In this dataset every account is a troll, so see the group purity results below.' : undefined); }
+  const rows = L.signals.filter(r => r.lift != null).sort((a, b) => b.lift - a.lift);
+  if (rows.length) $('lift-title').textContent = `${rows[0].name} is the strongest clue`;
+  $('lift-sub').textContent = `How much more likely two linked accounts are both propaganda accounts when they share each trace, vs a random linked pair (${pct(L.random_pair)} both labeled).`;
+  const [W, H] = size(el), m = { l: 200, r: 80, t: 4 }, iw = W - m.l - m.r, bh = (H - m.t) / rows.length, max = Math.max(...rows.map(r => r.lift));
+  let s = '';
+  rows.forEach((r, i) => { const y = m.t + i * bh, h = Math.min(30, bh - 16), yy = y + (bh - h) / 2, w = Math.max(3, r.lift / max * iw);
+    const extra = r.both_labeled != null ? `<br><span class="m">${pct(r.both_labeled)} of ${r.pairs.toLocaleString()} pairs both labeled</span>` : '';
+    s += `<g${tip(`<b>${esc(r.name)}</b><br>${r.lift.toFixed(1)}× baseline${extra}`)}><rect x="0" y="${y}" width="${W}" height="${bh}" fill="transparent"/>`;
+    s += `<text class="dlabel" style="font-size:15px" x="${m.l - 12}" y="${yy + h / 2 + 5}" text-anchor="end">${esc(r.name)}</text>`;
+    s += `<path d="${rightRound(m.l, yy, w, h, 4)}" fill="${C.s1}"/>`;
+    s += `<text class="dlabel strong" style="font-size:18px" x="${m.l + w + 10}" y="${yy + h / 2 + 6}">${times(r.lift)}</text></g>`; });
+  svg(el, W, H, s);
+}
+
+/* ---------- results ---------- */
+function drawResults() {
+  const el = $('c-prec'), P = D.precision, o = D.overview || {}, h = headline();
+  $('res-big').textContent = h ? h[0] : '—';
+  $('res-cap').textContent = h ? h[1] : '';
+  if (isLab()) { $('res-title').textContent = h ? `Top groups are ${h[0]} richer in propaganda accounts` : 'Are the top groups propaganda accounts?';
+    $('res-lead').textContent = 'Share of accounts in the top-ranked groups that researchers labeled as propaganda, against all active accounts.'; }
+  else if (isCat()) { $('res-title').textContent = 'Found groups match the real troll roles';
+    $('res-lead').textContent = 'Purity: the share of accounts in each found group that have the group\'s most common role. Random groups of the same sizes set the baseline.'; }
+  else { $('res-title').textContent = 'Top groups'; $('res-lead').textContent = 'This dataset has no answer key, so there is no accuracy score. The groups below are leads to investigate.'; }
+  if (!P || !P.length || (!isLab() && !isCat())) { legend('prec-legend', []); return ph(el, !isLab() && !isCat() ? 'No answer key for this dataset.' : undefined); }
+  const lab = k => k === 'all' ? 'All groups' : `Top ${k}`;
+  const series = isLab() ? [['labeled', C.s1, 'Labeled propaganda accounts']] : [['purity', C.s1, 'Found groups'], ['random', C.other, 'Random groups (same sizes)']];
+  legend('prec-legend', isCat() ? series.map(s => [s[1], s[2]]) : []);
+  const [W, H] = size(el), m = { l: 44, r: isLab() ? 130 : 8, t: 26, b: 42 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const max = 1, y = v => m.t + ih - v / max * ih, gw = iw / P.length, bw = Math.min(70, gw * .6 / series.length);
+  let s = '';
+  for (let i = 0; i <= 4; i++) { const v = i / 4; s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${C.grid}"/><text class="tick" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`; }
+  P.forEach((p, i) => { const gx = m.l + i * gw + (gw - bw * series.length - 4 * (series.length - 1)) / 2;
+    s += `<g${tip(`<b>${lab(p.k)}</b>` + (p.users ? `<br>${p.users.toLocaleString()} accounts` : '') + series.map(([k, , n]) => `<br><span class="m">${n}: ${pct(p[k])}</span>`).join(''))}>`;
+    s += `<rect x="${m.l + i * gw}" y="${m.t}" width="${gw}" height="${ih}" fill="transparent"/>`;
+    series.forEach(([k, c], j) => { const x = gx + j * (bw + 4), v = p[k];
+      if (v == null) return;
+      s += `<path d="${topRound(x, y(v), bw, m.t + ih - y(v), 4)}" fill="${c}"/><text class="dlabel strong" x="${x + bw / 2}" y="${y(v) - 8}" text-anchor="middle">${pct(v, 0)}</text>`; });
+    s += `<text class="dlabel" x="${m.l + i * gw + gw / 2}" y="${H - 22}" text-anchor="middle">${lab(p.k)}</text>`;
+    if (p.users) s += `<text class="tick" x="${m.l + i * gw + gw / 2}" y="${H - 5}" text-anchor="middle">${fmt(p.users)} accts</text>`;
+    s += `</g>`; });
+  if (isLab() && o.base_rate) { const b = y(o.base_rate);
+    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${b}" y2="${b}" stroke="${C.s2}" stroke-width="2" stroke-dasharray="6 5"/>
+      <text class="dlabel" x="${W - m.r + 10}" y="${b - 3}">All active</text><text class="dlabel" x="${W - m.r + 10}" y="${b + 14}">accounts: ${pct(o.base_rate)}</text>`; }
+  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="${C.line}"/>`;
+  svg(el, W, H, s);
+}
+
+function drawScatter() {
+  const el = $('c-scatter'), S = D.scatter;
+  const yName = isLab() ? 'Labeled share' : isCat() ? 'Share with main role' : null;
+  $('scatter-sub').textContent = yName ? `Each dot is a group: score (shared content per member) across, ${yName.toLowerCase()} up. Dot size is group size.` : '';
+  if (!S || !S.length || S[0].y == null) return ph(el, yName ? undefined : 'No answer key for this dataset.');
+  const [W, H] = size(el), m = { l: 52, r: 16, t: 14, b: 42 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
+  const xs = S.map(d => Math.log10(Math.max(d.score, 1e-3))), x0 = Math.floor(Math.min(...xs)), x1 = Math.ceil(Math.max(...xs));
+  const X = v => m.l + (Math.log10(Math.max(v, 1e-3)) - x0) / ((x1 - x0) || 1) * iw, Y = v => m.t + ih - v * ih;
+  const maxSize = Math.max(...S.map(d => d.size)), R = n => 3 + Math.sqrt(n / maxSize) * 14;
+  let s = '';
+  for (let i = 0; i <= 4; i++) { const v = i / 4; s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${C.grid}"/><text class="tick" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v * 100}%</text>`; }
+  for (let e = x0; e <= x1; e++) s += `<text class="tick" x="${X(10 ** e)}" y="${H - 22}" text-anchor="middle">${10 ** e >= 1 ? 10 ** e : (10 ** e).toFixed(-e)}</text>`;
+  s += `<text class="tick" x="${m.l + iw / 2}" y="${H - 4}" text-anchor="middle">Group score (log scale)</text>`;
+  s += `<text class="tick" transform="translate(10 ${m.t + ih / 2}) rotate(-90)" text-anchor="middle">${yName}</text>`;
+  [...S].sort((a, b) => b.size - a.size).forEach(d => {
+    s += `<circle${tip(`<b>Group #${d.rank}</b><br>${d.size} accounts · score ${d.score.toFixed(2)}<br><span class="m">${yName}: ${pct(d.y)}</span>`)} cx="${X(d.score)}" cy="${Y(d.y)}" r="${R(d.size)}" fill="${C.s1}" fill-opacity=".5" stroke="${C.surf}" stroke-width="1.5"/>`; });
+  svg(el, W, H, s);
+}
+
+
+/* ---------- dataset header ---------- */
+function drawHeader() {
+  const o = D.overview || {};
+  $('ds-title').textContent = D.name || key;
+  $('ds-desc').innerHTML = esc((INFO[key] || {}).desc || '') + (EXPLORE[key] ? ` <a href="index.html#/${EXPLORE[key]}">Explore these groups</a>` : '');
+  const pill = $('ds-pill');
+  if (D.seed) { pill.textContent = 'Partial: numbers from the README'; pill.className = 'pill warn'; }
+  else { pill.textContent = D.generated ? 'Exported ' + D.generated.replace('T', ' ') : ''; pill.className = 'pill'; }
+  const items = [[fmt(o.posts), 'posts'], [fmt(o.users), 'accounts'], [fmt(o.threads), 'channels'], [fmt(o.categories), 'account roles'],
+    [fmt(o.labeled_users), 'labeled propaganda accounts'], [o.base_rate != null ? pct(o.base_rate) : '—', `of active accounts labeled`],
+    [o.start ? o.start.slice(0, 7) + ' – ' + o.end.slice(0, 7) : '—', 'time span']].filter(i => i[0] !== '—' && i[0] !== '0');
+  $('ds-stats').innerHTML = `<div class="summary">${items.map(([n, c]) => `<div><b>${esc(n)}</b>${esc(c)}</div>`).join('')}</div>`;
+}
+const EXPLORE = { x: 'x' };   // datasets that also have an Explore view
+
+function drawAll() { const liftBox = $('c-lift').closest('section'), lab = isLab() || !D.truth;
+  liftBox.style.display = lab ? '' : 'none'; $('c-scatter').closest('section').style.gridColumn = lab ? '' : '1 / -1';
+  drawHeader(); drawResults(); drawScatter(); drawLift(); drawSchedule(); drawMonthly(); drawBreakdown(); }
+function pick(k) { key = k; D = ALL[k] || {}; $('ds').value = k;
+  const u = new URL(location); u.searchParams.set('data', k); history.replaceState(null, '', u); drawAll(); }
+const keys = Object.keys(ALL);
+$('ds').innerHTML = keys.map(k => `<option value="${k}">${esc(ALL[k].name || k)}</option>`).join('');
+$('ds').onchange = e => pick(e.target.value);
+const T = $('tip');
+document.addEventListener('mousemove', e => { const h = e.target.closest('[data-tip]');
+  if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
+  const r = T.getBoundingClientRect(); T.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, e.clientY + 14) + 'px'; });
+let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawAll, 150); });
+const want = new URLSearchParams(location.search).get('data');
+pick(keys.includes(want) ? want : (keys.includes('x') && ALL.x && !ALL.x.seed ? 'x' : keys[0]));
+</script>
+</body>
+</html>

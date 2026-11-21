@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Method · Behind the Accounts</title>
+<meta name="description" content="How Behind the Accounts finds coordinated accounts, how to read a group, and its limits.">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;700;800&display=swap">
+<style>
+:root { color-scheme: dark; --bg: #14121a; --panel: #1b1824; --panel-2: #221e2d; --rule: #2e2a3a; --grid: #26222f;
+  --text-primary: #efecf6; --text-secondary: #c4bfd4; --text-muted: #8a849c;
+  --series-1: #9085e9; --series-2: #c98500; --series-3: #199e70; --other: #6e6880; --surface-1: #1b1824; --line: #2e2a3a;
+  --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); line-height: 1.5; font-size: 15px; -webkit-font-smoothing: antialiased; }
+a { color: var(--text-primary); text-underline-offset: 3px; text-decoration-color: var(--series-1); }
+.wrap { max-width: 1240px; margin: 0 auto; padding: 0 28px; }
+:focus-visible { outline: 2px solid var(--series-1); outline-offset: 2px; }
+p { color: var(--text-secondary); }
+b, strong { color: var(--text-primary); font-weight: 700; }
+h1 { font-size: 30px; line-height: 1.1; letter-spacing: -.03em; font-weight: 800; margin: 0 0 8px; word-break: break-word; }
+h2 { font-size: 19px; letter-spacing: -.01em; font-weight: 700; margin: 0 0 4px; }
+h3 { font-size: 16px; font-weight: 700; margin: 0 0 4px; }
+.muted { color: var(--text-muted); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; color: var(--text-primary); }
+
+/* header, the same on every page */
+header.bar { position: sticky; top: 0; z-index: 20; background: rgba(20,18,26,.95); border-bottom: 1px solid var(--rule); }
+header.bar .wrap { display: flex; align-items: center; gap: 22px; height: 54px; }
+.brand { font-weight: 800; letter-spacing: -.02em; text-decoration: none; font-size: 16px; white-space: nowrap; }
+.tagline { color: var(--text-muted); font-size: 14px; white-space: nowrap; }
+header nav { display: flex; gap: 4px; margin-left: auto; }
+header nav a { color: var(--text-muted); text-decoration: none; font-size: 14px; padding: 6px 12px; border-radius: 4px; }
+header nav a:hover { color: var(--text-primary); background: var(--panel); }
+header nav a.on { color: var(--text-primary); background: var(--panel-2); }
+@media (max-width: 760px) { .tagline { display: none; } header nav { margin-left: 0; } }
+
+/* controls */
+select, input, button { background: var(--panel); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 10px; font: inherit; font-size: 14px; }
+select { padding-right: 30px; cursor: pointer; appearance: none; max-width: 100%;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
+button { cursor: pointer; } button:hover { border-color: var(--text-muted); }
+.controls { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; padding: 16px 0 12px; }
+.controls label { display: flex; flex-direction: column; gap: 4px; font-size: 13px; color: var(--text-muted); }
+.controls .grow { flex: 1; min-width: 200px; }
+.controls .grow input { width: 100%; }
+.notice { font-size: 13px; color: var(--text-muted); padding: 0 0 14px; }
+.notice b { color: #e0b25c; font-weight: 500; }
+
+/* summary numbers */
+.summary { display: flex; flex-wrap: wrap; gap: 8px 28px; padding: 12px 0; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); margin-bottom: 18px; }
+.summary div { font-size: 13px; color: var(--text-muted); }
+.summary b { display: block; font-size: 20px; font-weight: 700; color: var(--text-primary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+/* panels */
+.panel { background: var(--panel); border-radius: 6px; padding: 18px 20px; margin-bottom: 16px; }
+.panel > p.sub { font-size: 14px; color: var(--text-muted); margin: 0 0 14px; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.pill { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 3px; background: var(--panel-2); color: var(--text-muted); white-space: nowrap; text-decoration: none; margin: 1px 2px 1px 0; }
+a.pill:hover { color: var(--text-primary); }
+.pill.bad { color: var(--series-2); } .pill.ok { color: #3fc296; }
+
+/* tables */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 7px 10px; border-bottom: 1px solid var(--rule); font-size: 13px; white-space: nowrap; }
+td { padding: 8px 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.n { color: var(--text-primary); }
+.scroll { overflow-x: auto; }
+footer { padding: 28px 0 48px; font-size: 13px; color: var(--text-muted); border-top: 1px solid var(--rule); margin-top: 32px; }
+footer a { color: var(--text-secondary); }
+#tip { position: fixed; pointer-events: none; background: var(--panel-2); border: 1px solid var(--rule); color: var(--text-primary);
+  padding: 7px 10px; border-radius: 4px; font-size: 13px; line-height: 1.4; opacity: 0; transition: opacity .1s; z-index: 50; max-width: 320px; }
+#tip .m { color: var(--text-muted); }
+
+/* method page: one readable column with a contents list */
+.doc { display: grid; grid-template-columns: 200px minmax(0, 720px); gap: 48px; padding: 32px 0 0; }
+.toc { position: sticky; top: 78px; align-self: start; font-size: 14px; }
+.toc a { display: block; color: var(--text-muted); text-decoration: none; padding: 4px 0; }
+.toc a:hover { color: var(--text-primary); }
+.doc section { padding: 0 0 36px; }
+.doc h1 { font-size: 34px; margin-bottom: 12px; }
+.doc h2 { font-size: 22px; margin: 0 0 10px; padding-top: 8px; }
+.doc p, .doc li, .doc dd { font-size: 16px; line-height: 1.6; }
+.lead { font-size: 18px !important; color: var(--text-secondary); }
+dl { display: grid; grid-template-columns: 170px minmax(0, 1fr); margin: 0; border-top: 1px solid var(--rule); }
+dt, dd { padding: 10px 0; border-bottom: 1px solid var(--rule); margin: 0; }
+dt { font-weight: 700; padding-right: 14px; }
+dd { color: var(--text-secondary); }
+ol { padding-left: 22px; } ol li { margin-bottom: 6px; color: var(--text-secondary); }
+.figs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 8px 0 4px; }
+.figs b { display: block; font-size: 28px; font-weight: 800; letter-spacing: -.03em; color: var(--series-2); }
+.figs span { font-size: 14px; color: var(--text-secondary); }
+.src div { font-size: 14px; margin-bottom: 6px; color: var(--text-secondary); }
+@media (max-width: 900px) { .doc { grid-template-columns: 1fr; } .toc { display: none; } dl { grid-template-columns: 1fr; } dt { border-bottom: 0; padding-bottom: 0; } .figs { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header class="bar"><div class="wrap">
+  <a class="brand" href="index.html">Behind the Accounts</a><span class="tagline">Find accounts that act together</span>
+  <nav><a href="index.html">Explore</a><a href="results.html">Results</a><a class="on" href="method.html">Method</a></nav>
+</div></header>
+<main class="wrap doc">
+  <nav class="toc" aria-label="On this page">
+    <a href="#why">Why it matters</a><a href="#how">How it works</a><a href="#read">Reading a group</a>
+    <a href="#limits">Limits</a><a href="#data">Datasets</a><a href="#team">About</a><a href="#sources">Sources</a>
+  </nav>
+  <div>
+    <section>
+      <h1>How Behind the Accounts works</h1>
+      <p class="lead">It finds groups of accounts that act together, such as troll farms, state operators and spam networks. It uses no text model, because AI can reword every post. It looks at what operators can't easily change: who they reply to, what they link, and when they work.</p>
+    </section>
+
+    <section id="why">
+      <h2>Why it matters</h2>
+      <div class="figs">
+        <div><b>25,000</b><span>TikTok accounts in a pro-Russian push before Romania annulled its 2024 election</span></div>
+        <div><b>7,700</b><span>Facebook accounts in China's Spamouflage network, Meta's largest takedown</span></div>
+        <div><b>3.6M</b><span>articles from Russia's Pravda network in 2024, built to seed AI chatbots</span></div>
+      </div>
+      <p>Copy-paste used to give these networks away. Now AI rewrites every post, and AI-text detectors fail once text is paraphrased. <a href="https://github.com/luka1231123/praire-hack-26/blob/main/Purpose.md">Read the full purpose</a>.</p>
+    </section>
+
+    <section id="how">
+      <h2>How it works</h2>
+      <p>Every pair of accounts is scored on five traces:</p>
+      <dl>
+        <dt>Same reply targets</dt><dd>They reply to the same messages.</dd>
+        <dt>Same timing</dt><dd>They hit the same post, link or tag within 60 seconds.</dd>
+        <dt>Same links and tags</dt><dd>They share URLs, hashtags, mentions or reposts. A trace counts 1/(sharers − 1), so a link two accounts share outweighs one shared by fifty.</dd>
+        <dt>Same template text</dt><dd>Their posts match once case, links, digits, punctuation and emoji are removed.</dd>
+        <dt>Same schedule</dt><dd>Their weekly activity, hour by hour, lines up. This multiplies the other traces.</dd>
+      </dl>
+      <ol style="margin-top:18px">
+        <li>Every post becomes one row: account, time, text, reply target, links and tags.</li>
+        <li>Each pair of accounts is scored on the traces above.</li>
+        <li>Leiden clustering finds tight groups of three or more accounts.</li>
+        <li>Groups are ranked by shared content per member, with the evidence attached.</li>
+      </ol>
+    </section>
+
+    <section id="read">
+      <h2>Reading a group</h2>
+      <dl>
+        <dt>Score</dt><dd>Shared content per member. Higher means more rare traces in common.</dd>
+        <dt>Schedule match</dt><dd>How alike members' weekly activity is, from 0 to 1.</dd>
+        <dt>Kind</dt><dd>The group's topic (political, scam, porn or other), from a small multilingual model that compares sampled posts with example sentences. It describes the topic, not who runs the group.</dd>
+        <dt>Bot signs</dt><dd>Bluesky only, from public account facts: <i>same-name</i>, <i>new-accounts</i>, <i>template-bio</i>, <i>blank-profiles</i>, <i>gone-accounts</i>, <i>high-volume</i> (young, many posts a day, few followers), <i>own-domain</i> (links go to a site almost nobody else links) and <i>no-sleep</i> (no quiet hours). Three or more, without disclosure, marks a group <i>hidden</i> and ranks it first.</dd>
+        <dt>Real-community signs</dt><dd><i>likely-community</i> (old accounts with real, varied bios) and <i>disclosed</i> (bios that say bot, feed or official). These rank a group lower.</dd>
+      </dl>
+    </section>
+
+    <section id="limits">
+      <h2>Limits</h2>
+      <p><b>It flags behavior, not opinions.</b> It never scores what a post argues. A group can be a real community, a news feed or a fan account network. Open each post at its source and decide yourself.</p>
+      <p>The time zone shown on a group page comes from its quietest hours. It's a hint, not proof. The live Bluesky view covers only the last 24 hours, so small groups may be chance.</p>
+    </section>
+
+    <section id="data">
+      <h2>Datasets</h2>
+      <dl>
+        <dt>Telegram</dt><dd>17.3M comments from 13 Russian channels, with 15,856 accounts labeled as propaganda by researchers (Kireev et al., USENIX Security 2025). Used to measure accuracy.</dd>
+        <dt>X: IRA trolls</dt><dd>2.9M tweets from 2,843 accounts of Russia's Internet Research Agency, each tagged with a role (FiveThirtyEight). Used to check that found groups match real roles.</dd>
+        <dt>Bluesky, live</dt><dd>The public firehose, about 40 posts a second, in a rolling 24-hour window. No answer key: groups are leads.</dd>
+        <dt>Bluesky, Iowa</dt><dd>Past posts of accounts around the Iowa election, Oct 27 – Nov 10 2026.</dd>
+      </dl>
+    </section>
+
+    <section id="team">
+      <h2>About</h2>
+      <p>Built for prairehack26. The code, data notes and instructions are on <a href="https://github.com/luka1231123/praire-hack-26">GitHub</a>.</p>
+    </section>
+
+    <section id="sources">
+      <h2>Sources</h2>
+      <div class="src">
+        <div>Kireev et al., "Characterizing and Detecting Propaganda-Spreading Accounts on Telegram," USENIX Security 2025 (<a href="https://zenodo.org/records/14736756">dataset</a>)</div>
+        <div><a href="https://github.com/fivethirtyeight/russian-troll-tweets">FiveThirtyEight: Russian troll tweets</a></div>
+        <div><a href="https://thehackernews.com/2024/12/romania-cancels-presidential-election.html">The Hacker News: Romania annuls election</a></div>
+        <div><a href="https://www.securityweek.com/meta-fights-sprawling-chinese-spamouflage-operation/amp/">SecurityWeek: Meta's Spamouflage takedown</a></div>
+        <div><a href="https://openai.com/index/disrupting-malicious-ai-uses">OpenAI threat report, February 2026</a></div>
+        <div><a href="https://scienceblog.com/neuroedge/?p=225">ScienceBlog: the AIPasta study</a></div>
+        <div><a href="https://arxiv.org/html/2511.00416v1">PADBen: AI-text detectors against paraphrasing</a></div>
+        <div><a href="https://united24media.com/war-in-ukraine/researchers-reveal-how-russias-propaganda-network-infects-leading-ai-chatbots-7106">United24: the Pravda network and AI chatbots</a></div>
+        <div><a href="https://osome.iu.edu/tools/coordiscope">OSoMe Coordiscope</a>, a related tool from Indiana University</div>
+      </div>
+    </section>
+  </div>
+</main>
+<footer><div class="wrap">Behind the Accounts, a prairehack26 project.</div></footer>
+</body>
+</html>
