@@ -393,6 +393,7 @@ function viewList() {
     $('pager').innerHTML = `<span>Groups ${rows.length ? page * per + 1 : 0}–${Math.min(rows.length, (page + 1) * per)} of ${rows.length}</span>
       <button id="prev" ${page ? '' : 'disabled'}>Previous</button><button id="next" ${page < pages - 1 ? '' : 'disabled'}>Next</button>`;
     $('prev').onclick = () => { page--; draw(); scrollTo(0, 0); }; $('next').onclick = () => { page++; draw(); scrollTo(0, 0); };
+    glossify($('cards')); glossify(document.querySelector('.intro'));
   };
   for (const id of ['fk', 'ft']) $(id)?.addEventListener('change', () => { page = 0; draw(); });
   draw();
@@ -630,6 +631,93 @@ ${g.edges.map(e => `<edge source="${xml(e.u)}" target="${xml(e.v)}">${attrs.map(
     group: g }, null, 1), 'application/json');
 }
 
+/* ---------- glossary: every term a beginner may not know gets a hover explanation ---------- */
+const GLOSSARY = {
+  // troll jobs in the X data (from the Clemson University researchers who sorted the accounts)
+  'right-wing trolls': 'Russian troll accounts that pretended to be conservative Americans. They posted pro-Trump, nationalist and anti-immigrant messages.',
+  'left-wing trolls': 'Russian troll accounts that pretended to be liberal Americans, often Black activists. They posted about race and identity and attacked mainstream Democrats.',
+  'non-English trolls': 'Russian troll accounts that posted mostly in Russian, German or other languages, aimed at people outside the United States.',
+  'fake local-news accounts': 'Russian troll accounts that pretended to be local news sites (with names like a city plus "Today"). They posted real local headlines to earn trust.',
+  'hashtag-game trolls': 'Russian troll accounts that joined popular Twitter word games (like #MyOlympicSportWouldBe) to look like normal people and gain followers, sometimes slipping in politics.',
+  'fear-spreading trolls': 'Russian troll accounts that spread made-up emergencies, like a fake food-poisoning outbreak, to scare people.',
+  'advertising accounts': 'Accounts that posted ads and sales posts.',
+  'trolls with an unknown job': 'Troll accounts the researchers could not sort into a job.',
+  // topics
+  'Politics': 'Their posts are mostly about elections, governments, wars or political sides.',
+  'Scam': 'Their posts mostly try to get money or clicks: fake giveaways, crypto, "send money", fake deals.',
+  'Adult content': 'Their posts mostly advertise sexual content. Spam networks often do this.',
+  'Other topics': 'Their posts are about something else: sports, news, games, everyday life.',
+  // everyday words in this topic
+  'troll farm': 'An office where people are paid to run many fake social media accounts.',
+  'Internet Research Agency': 'A Russian company in St. Petersburg that ran thousands of fake social media accounts, including to influence the 2016 US election.',
+  'propaganda': 'Messages made to push people toward a belief, often by hiding who is behind them or by bending the truth.',
+  'trolls': 'Fake accounts run by people pretending to be someone else, to fool or stir up others.',
+  'troll': 'A fake account run by a person pretending to be someone else, to fool or stir up others.',
+  'answer key': 'Information we already know for sure, like accounts researchers or the platform already identified. We use it to check whether PropNET got it right.',
+  'bots': 'Accounts run by a computer program instead of a person.',
+  'bot': 'An account run by a computer program instead of a person.',
+  'hashtags': 'Words starting with #, like #election. Clicking one shows everyone using it.',
+  'hashtag': 'A word starting with #, like #election. Clicking one shows everyone using it.',
+  'reposts': 'Sharing someone else\'s post on your own page (called a retweet on X).',
+  'reposted': 'Shared someone else\'s post on their own page (called a retweet on X).',
+  'mentions': 'Tagging another account in a post with @, like @someone.',
+  'mentioned': 'Tagged another account in a post with @, like @someone.',
+  'UTC': 'World time, the same everywhere. Chicago is 6 hours behind UTC in winter, London is the same as UTC.',
+  'Bluesky': 'A social network similar to X (Twitter). Its posts are public, so anyone can study them.',
+  'Telegram': 'A messaging app with public channels, very popular in Russia and Ukraine.',
+  'firehose': 'The live stream of every new public post on Bluesky, about 40 posts a second.',
+  'display name': 'The name shown on an account\'s profile, which can be anything, unlike the @handle.',
+  'profiles': 'The page about an account: its name, picture and short description.',
+  'Random groups': 'Groups made by shuffling accounts randomly. They show what the result would look like by pure luck.',
+  'picked at random': 'Chosen by pure luck, without PropNET. This shows what you would get by guessing.',
+  'operator': 'The person or group secretly running the accounts.',
+  'state actors': 'Governments, or groups working for a government.',
+  // expert words
+  'raw score': 'The number PropNET uses to rank groups: how much its members share per member. Higher means more copying. It has no fixed maximum.',
+  'shared traces': 'Things two or more members have in common: the same text, link, hashtag, mention, repost or reply.',
+  'shared trace': 'Something two or more members have in common: the same text, link, hashtag, mention, repost or reply.',
+  'schedule similarity': 'How alike their posting hours are, from 0 (nothing alike) to 1 (exactly the same).',
+  'GraphML': 'A file format for networks. It opens in tools like Gephi to draw and study the group.',
+  'CSV': 'A simple table file that opens in Excel or Google Sheets.',
+  'JSON': 'A data file programmers can read, with everything about the group.',
+  'DID': 'A Bluesky account\'s permanent ID. The @handle can change, the DID never does.',
+  'Leiden clustering': 'A math method that finds tight groups in a network, like friend circles in a school.',
+  'purity': 'How many accounts in a group share the group\'s most common troll job.',
+  'cosine': 'A math way to compare two patterns, from 0 (nothing alike) to 1 (identical).',
+  'labeled': 'Marked by researchers as a propaganda account.',
+};
+const GLOSS_TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+const GLOSS_RE = new RegExp('(^|[^\\w-])(' + GLOSS_TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\w-])', 'gi');
+const GLOSS_LOWER = Object.fromEntries(GLOSS_TERMS.map(t => [t.toLowerCase(), t]));
+// Wrap the first use of each term in each block (card, list item, paragraph...) with a hover explanation
+function glossify(root) {
+  if (!root) return;
+  const SKIP = 'a, code, button, select, option, input, textarea, script, style, svg, .hint, [data-tip], #tip, header, .mono, q, .posts';
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n =>
+    !n.nodeValue.trim() || n.parentElement.closest(SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  const seen = new WeakMap();
+  for (const node of nodes) {
+    const block = node.parentElement.closest('.card, li, dd, dt, p, h1, h2, h3, section, td, th, .dotbox, .cluerow') || root;
+    let used = seen.get(block);
+    if (!used) { used = new Set([...block.querySelectorAll('.hint')].map(h => GLOSS_LOWER[h.textContent.toLowerCase()]).filter(Boolean)); seen.set(block, used); }
+    const text = node.nodeValue; let out = '', last = 0, changed = false, m;
+    GLOSS_RE.lastIndex = 0;
+    while ((m = GLOSS_RE.exec(text))) {
+      const word = m[2], key = GLOSS_LOWER[word.toLowerCase()] || word;
+      if (!GLOSSARY[key] || used.has(key) || (key === 'DID' && word !== 'DID') || (key === 'UTC' && word !== 'UTC')) continue;
+      used.add(key); changed = true;
+      const start = m.index + m[1].length;
+      out += escG(text.slice(last, start)) + `<span class="hint" tabindex="0" data-tip="${escG(GLOSSARY[key])}">${escG(word)}</span>`;
+      last = start + word.length;
+    }
+    if (!changed) continue;
+    const span = document.createElement('span'); span.innerHTML = out + escG(text.slice(last));
+    node.replaceWith(...span.childNodes);
+  }
+}
+function escG(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
 // ---------- routing ----------
 async function route() {
   if (!window.DATASETS) await script('datasets.js').catch(() => {});
@@ -648,6 +736,7 @@ async function route() {
   else if (view === 'k') viewKey(a, decodeURIComponent(b.join('/')));
   else if (view === 's') { $('q').value = decodeURIComponent(a); viewSearch(decodeURIComponent(a)); }
   else viewList();
+  glossify($('app'));
 }
 $('ds').onchange = () => location.hash = '#/' + enc($('ds').value);
 $('q').onkeydown = e => { if (e.key === 'Enter' && $('q').value.trim()) location.hash = `#/${enc(name)}/s/${enc($('q').value.trim())}`; };
@@ -659,6 +748,7 @@ document.addEventListener('focusin', e => { const h = e.target.closest('[data-ti
 document.addEventListener('focusout', () => showTip(null));
 // the project pages exist only on the public site (docs/); hide their links elsewhere
 fetch('method.html', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; }).catch(() => document.querySelectorAll('.proj').forEach(a => a.remove()));
+glossify(document.querySelector('.notice'));
 addEventListener('hashchange', route);
 route().catch(e => $('app').textContent = 'Could not load the data: ' + e);
 </script>

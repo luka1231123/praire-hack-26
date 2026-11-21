@@ -86,6 +86,8 @@ footer { padding: 24px 0 40px; font-size: 14px; color: var(--text-muted); border
   padding: 6px 9px; border-radius: 3px; font-size: 14px; line-height: 1.4; opacity: 0; transition: opacity .1s; z-index: 50; max-width: 320px; }
 #tip .m { color: var(--text-muted); }
 /* results page */
+.hint { border-bottom: 1px dotted currentColor; cursor: help; }
+
 .intro { padding: 4px 0 10px; }
 .intro p { font-size: 17px; max-width: 46em; margin: 6px 0; }
 .lead2 { font-size: 19px; color: var(--text-primary); max-width: 44em; line-height: 1.45; margin: 6px 0 16px; }
@@ -353,6 +355,93 @@ function drawScatter() {
 }
 
 
+/* ---------- glossary: every term a beginner may not know gets a hover explanation ---------- */
+const GLOSSARY = {
+  // troll jobs in the X data (from the Clemson University researchers who sorted the accounts)
+  'right-wing trolls': 'Russian troll accounts that pretended to be conservative Americans. They posted pro-Trump, nationalist and anti-immigrant messages.',
+  'left-wing trolls': 'Russian troll accounts that pretended to be liberal Americans, often Black activists. They posted about race and identity and attacked mainstream Democrats.',
+  'non-English trolls': 'Russian troll accounts that posted mostly in Russian, German or other languages, aimed at people outside the United States.',
+  'fake local-news accounts': 'Russian troll accounts that pretended to be local news sites (with names like a city plus "Today"). They posted real local headlines to earn trust.',
+  'hashtag-game trolls': 'Russian troll accounts that joined popular Twitter word games (like #MyOlympicSportWouldBe) to look like normal people and gain followers, sometimes slipping in politics.',
+  'fear-spreading trolls': 'Russian troll accounts that spread made-up emergencies, like a fake food-poisoning outbreak, to scare people.',
+  'advertising accounts': 'Accounts that posted ads and sales posts.',
+  'trolls with an unknown job': 'Troll accounts the researchers could not sort into a job.',
+  // topics
+  'Politics': 'Their posts are mostly about elections, governments, wars or political sides.',
+  'Scam': 'Their posts mostly try to get money or clicks: fake giveaways, crypto, "send money", fake deals.',
+  'Adult content': 'Their posts mostly advertise sexual content. Spam networks often do this.',
+  'Other topics': 'Their posts are about something else: sports, news, games, everyday life.',
+  // everyday words in this topic
+  'troll farm': 'An office where people are paid to run many fake social media accounts.',
+  'Internet Research Agency': 'A Russian company in St. Petersburg that ran thousands of fake social media accounts, including to influence the 2016 US election.',
+  'propaganda': 'Messages made to push people toward a belief, often by hiding who is behind them or by bending the truth.',
+  'trolls': 'Fake accounts run by people pretending to be someone else, to fool or stir up others.',
+  'troll': 'A fake account run by a person pretending to be someone else, to fool or stir up others.',
+  'answer key': 'Information we already know for sure, like accounts researchers or the platform already identified. We use it to check whether PropNET got it right.',
+  'bots': 'Accounts run by a computer program instead of a person.',
+  'bot': 'An account run by a computer program instead of a person.',
+  'hashtags': 'Words starting with #, like #election. Clicking one shows everyone using it.',
+  'hashtag': 'A word starting with #, like #election. Clicking one shows everyone using it.',
+  'reposts': 'Sharing someone else\'s post on your own page (called a retweet on X).',
+  'reposted': 'Shared someone else\'s post on their own page (called a retweet on X).',
+  'mentions': 'Tagging another account in a post with @, like @someone.',
+  'mentioned': 'Tagged another account in a post with @, like @someone.',
+  'UTC': 'World time, the same everywhere. Chicago is 6 hours behind UTC in winter, London is the same as UTC.',
+  'Bluesky': 'A social network similar to X (Twitter). Its posts are public, so anyone can study them.',
+  'Telegram': 'A messaging app with public channels, very popular in Russia and Ukraine.',
+  'firehose': 'The live stream of every new public post on Bluesky, about 40 posts a second.',
+  'display name': 'The name shown on an account\'s profile, which can be anything, unlike the @handle.',
+  'profiles': 'The page about an account: its name, picture and short description.',
+  'Random groups': 'Groups made by shuffling accounts randomly. They show what the result would look like by pure luck.',
+  'picked at random': 'Chosen by pure luck, without PropNET. This shows what you would get by guessing.',
+  'operator': 'The person or group secretly running the accounts.',
+  'state actors': 'Governments, or groups working for a government.',
+  // expert words
+  'raw score': 'The number PropNET uses to rank groups: how much its members share per member. Higher means more copying. It has no fixed maximum.',
+  'shared traces': 'Things two or more members have in common: the same text, link, hashtag, mention, repost or reply.',
+  'shared trace': 'Something two or more members have in common: the same text, link, hashtag, mention, repost or reply.',
+  'schedule similarity': 'How alike their posting hours are, from 0 (nothing alike) to 1 (exactly the same).',
+  'GraphML': 'A file format for networks. It opens in tools like Gephi to draw and study the group.',
+  'CSV': 'A simple table file that opens in Excel or Google Sheets.',
+  'JSON': 'A data file programmers can read, with everything about the group.',
+  'DID': 'A Bluesky account\'s permanent ID. The @handle can change, the DID never does.',
+  'Leiden clustering': 'A math method that finds tight groups in a network, like friend circles in a school.',
+  'purity': 'How many accounts in a group share the group\'s most common troll job.',
+  'cosine': 'A math way to compare two patterns, from 0 (nothing alike) to 1 (identical).',
+  'labeled': 'Marked by researchers as a propaganda account.',
+};
+const GLOSS_TERMS = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+const GLOSS_RE = new RegExp('(^|[^\\w-])(' + GLOSS_TERMS.map(t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\w-])', 'gi');
+const GLOSS_LOWER = Object.fromEntries(GLOSS_TERMS.map(t => [t.toLowerCase(), t]));
+// Wrap the first use of each term in each block (card, list item, paragraph...) with a hover explanation
+function glossify(root) {
+  if (!root) return;
+  const SKIP = 'a, code, button, select, option, input, textarea, script, style, svg, .hint, [data-tip], #tip, header, .mono, q, .posts';
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, { acceptNode: n =>
+    !n.nodeValue.trim() || n.parentElement.closest(SKIP) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT });
+  const nodes = []; while (walker.nextNode()) nodes.push(walker.currentNode);
+  const seen = new WeakMap();
+  for (const node of nodes) {
+    const block = node.parentElement.closest('.card, li, dd, dt, p, h1, h2, h3, section, td, th, .dotbox, .cluerow') || root;
+    let used = seen.get(block);
+    if (!used) { used = new Set([...block.querySelectorAll('.hint')].map(h => GLOSS_LOWER[h.textContent.toLowerCase()]).filter(Boolean)); seen.set(block, used); }
+    const text = node.nodeValue; let out = '', last = 0, changed = false, m;
+    GLOSS_RE.lastIndex = 0;
+    while ((m = GLOSS_RE.exec(text))) {
+      const word = m[2], key = GLOSS_LOWER[word.toLowerCase()] || word;
+      if (!GLOSSARY[key] || used.has(key) || (key === 'DID' && word !== 'DID') || (key === 'UTC' && word !== 'UTC')) continue;
+      used.add(key); changed = true;
+      const start = m.index + m[1].length;
+      out += escG(text.slice(last, start)) + `<span class="hint" tabindex="0" data-tip="${escG(GLOSSARY[key])}">${escG(word)}</span>`;
+      last = start + word.length;
+    }
+    if (!changed) continue;
+    const span = document.createElement('span'); span.innerHTML = out + escG(text.slice(last));
+    node.replaceWith(...span.childNodes);
+  }
+}
+function escG(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
 /* ---------- plain-language sections ---------- */
 const SIMPLE = {
   telegram: 'Comments on 13 Russian Telegram news channels. Researchers checked thousands of the accounts by hand and marked which ones spread propaganda. That gives us an answer key to test PropNET against.',
@@ -414,16 +503,19 @@ function drawHours() {
 function drawAll() { const liftBox = $('c-lift').closest('section'), lab = isLab() || !D.truth;
   liftBox.style.display = lab ? '' : 'none'; $('c-scatter').closest('section').style.gridColumn = lab ? '' : '1 / -1';
   drawHeader(); drawWin(); drawClues(); drawHours();
-  drawResults(); drawScatter(); drawLift(); drawSchedule(); drawMonthly(); drawBreakdown(); }
+  drawResults(); drawScatter(); drawLift(); drawSchedule(); drawMonthly(); drawBreakdown();
+  glossify(document.querySelector('main')); }
 function pick(k) { key = k; D = ALL[k] || {}; $('ds').value = k;
   const u = new URL(location); u.searchParams.set('data', k); history.replaceState(null, '', u); drawAll(); }
 const keys = Object.keys(ALL);
 $('ds').innerHTML = keys.map(k => `<option value="${k}">${esc(ALL[k].name || k)}</option>`).join('');
 $('ds').onchange = e => pick(e.target.value);
 const T = $('tip');
-document.addEventListener('mousemove', e => { const h = e.target.closest('[data-tip]');
-  if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
-  const r = T.getBoundingClientRect(); T.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, e.clientY + 14) + 'px'; });
+const showTip = (h, x, y) => { if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
+  const r = T.getBoundingClientRect(); T.style.left = Math.max(8, Math.min(innerWidth - r.width - 8, x + 14)) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, y + 14) + 'px'; };
+document.addEventListener('mousemove', e => showTip(e.target.closest('[data-tip]'), e.clientX, e.clientY));
+document.addEventListener('focusin', e => { const h = e.target.closest('[data-tip]'); if (!h) return showTip(null); const r = h.getBoundingClientRect(); showTip(h, r.left, r.bottom); });
+document.addEventListener('focusout', () => showTip(null));
 document.querySelector('details.expert').addEventListener('toggle', e => { if (e.target.open) drawAll(); });
 let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawAll, 150); });
 const want = new URLSearchParams(location.search).get('data');
