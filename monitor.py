@@ -5,7 +5,7 @@ Usage:  uv run monitor.py
 - Reads the Bluesky Jetstream firehose (all new posts and reposts).
 - Writes one Parquet file per minute to data/live/, same columns as ingest.py.
 - Deletes files older than WINDOW_H hours (rolling window).
-- Every DETECT_EVERY seconds runs detect.py on the window and writes data/live_report.html.
+- Every DETECT_EVERY seconds runs detect.py on the window and writes data/live_report.html and data/site/.
 A repost is stored as a post with the item "rt:<post uri>", so shared amplification counts as a shared item.
 """
 import asyncio
@@ -20,6 +20,7 @@ import pyarrow.parquet as pq
 import websockets
 
 import detect
+import osint_site
 
 URL = ("wss://jetstream2.us-east.bsky.network/subscribe"
        "?wantedCollections=app.bsky.feed.post&wantedCollections=app.bsky.feed.repost")
@@ -94,8 +95,10 @@ async def stream():
 def run_detect():
     con, cl, member = detect.detect(f"{LIVE}/*.parquet", MIN_POSTS)
     cl = detect.tags(cl, member)  # account facts from the public API
+    kd = detect.kinds(con, cl)
     detect.report(con, cl, member, out="data/live_report.html",
-                  platform_url="https://bsky.app/profile/{}", refresh=60)
+                  platform_url="https://bsky.app/profile/{}", refresh=60, kd=kd)
+    osint_site.write(con, cl, member, "bluesky", f"{LIVE}/*.parquet", kd=kd)  # data/site/, the investigator site
     print(f"{time.strftime('%H:%M')} report: {len(cl)} groups -> data/live_report.html", flush=True)
 
 

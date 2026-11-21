@@ -100,6 +100,23 @@ WINDOW_H=48 uv run monitor.py     # keep 48 hours of data instead of 24
 
 The monitor reads the Bluesky Jetstream firehose (about 40 posts/s) and keeps a rolling 24-hour window in `data/live/`.
 
+## Investigator site (OSINT)
+
+A local site for checking groups by hand. It has one page per group with the reason for the flag, the shared
+traces, a link to each source post (and a Wayback Machine link), a timeline, a weekly schedule with a time-zone hint,
+and the members with their public account facts. You can click a link, hashtag or reply target to see every
+group that shares it, and you can search a handle, DID, link or text. Each group exports to CSV, GraphML (Gephi, Maltego) and JSON.
+
+```bash
+uv run osint_site.py bluesky "data/live/*.parquet" 3      # also refreshed every 5 min by monitor.py
+uv run osint_site.py iowa "data/backfill/*.parquet" 5
+uv run osint_site.py x data/posts_x.parquet 20 5
+python3 -m http.server 8765 -d data/site                   # open http://localhost:8765
+```
+
+It writes to `data/site/` (not in git), because it holds real account IDs. The page itself is `osint/index.html`.
+It flags behavior, not opinions: a person checks the posts and decides.
+
 ## Website
 
 `docs/` is the project website (GitHub Pages: Settings → Pages → main, `/docs`). A dropdown switches

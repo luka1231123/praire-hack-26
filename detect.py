@@ -23,6 +23,8 @@ import pandas as pd
 MAX_FAN = 100     # skip keys shared by more users than this (too popular to mean anything)
 MIN_EVENTS = 3    # a pair needs at least this many shared keys
 WINDOW_S = 60
+# text for the "dup" key: lower case, no links or @mentions, letters only
+NORM = r"trim(regexp_replace(lower(regexp_replace(coalesce(text, ''), 'https?://\S+|@\S+', '', 'g')), '[^\p{L}]+', ' ', 'g'))"
 
 
 def detect(src, min_posts=20, resolution=0.2):
@@ -34,17 +36,14 @@ def detect(src, min_posts=20, resolution=0.2):
     # one row per (signal kind, key, user)
     con.sql(r"""
     create table ev as
-    with n as (
-      select *, trim(regexp_replace(lower(regexp_replace(coalesce(text, ''), 'https?://\S+|@\S+', '', 'g')),
-                                    '[^\p{L}]+', ' ', 'g')) norm
-      from p)
+    with n as (select *, {NORM} norm from p)
     select 'tgt' kind, coalesce(thread, '') || ':' || reply_to key, user_id, min(ts) t0, null sample
       from n where reply_to is not null group by all
     union all
     select 'item', it, user_id, min(ts), null from (select user_id, ts, unnest(items) it from n) group by all
     union all
     select 'dup', md5(norm), user_id, min(ts), any_value(text) from n where length(norm) >= 30 group by all
-    """)
+    """.replace("{NORM}", NORM))
     con.sql(f"""create table ev2 as select * from
                 (select *, count(*) over (partition by kind, key) fan from ev) where fan between 2 and {MAX_FAN}""")
 
