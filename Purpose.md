@@ -1,6 +1,6 @@
 # Why This Matters
 
-State actors run networks of fake accounts to spread propaganda, and they now use AI to reword each post so the network is harder to trace. This project finds those networks by how the accounts behave, not by how they write, so AI rewording doesn't hide them.
+State actors run networks of fake accounts to spread propaganda, and they now use AI to reword each post so the network is harder to trace. PropNET finds those networks by how the accounts behave, not by how they write, so AI rewording doesn't hide them.
 
 ## The problem is real
 - **It has changed an election.** In 2024 Romania annulled its presidential first round after intelligence linked about 25,000 coordinated TikTok accounts to a pro-Russian campaign. The candidate went from under 1% in the polls to first place.
