@@ -14,6 +14,14 @@ State actors run networks of fake accounts to spread propaganda, and they now us
 
 **Our approach:** don't ask "was this written by AI?" Ask "are these accounts working together?"
 
+## How we detect coordination
+Rewording can hide duplicate text, but coordinated accounts still leave other traces. We combine several signals:
+- **Writing patterns:** similar phrasing, structure, and style, even after paraphrasing
+- **Shared hashtags:** groups of accounts pushing the same hashtags, often at the same time
+- **Shared links:** accounts posting the same URLs or domains, like the fake news sites used by Doppelganger
+
+One signal alone can be a coincidence. Several together point to a network.
+
 ## Why it's urgent
 Russia's Pravda network published 3.6 million articles in 2024 to seed AI chatbots, which repeated its claims about 33% of the time. Catching coordinated content early helps keep it out of AI systems too.
 
