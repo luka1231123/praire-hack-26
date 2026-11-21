@@ -39,6 +39,22 @@ is the schedule signal and the labels. To add a class or fix a miss, add a proto
 | X (IRA)   | 1,563 of 1,762 troll users are `political`. 79 of 83 HashtagGamer (word games) are `other`. |
 | Bluesky   | Finds porn, Korean porn spam, donation-begging spam and affiliate spam. Errors: flight-tracker bots as `scam`, webcam feeds as `porn`. |
 
+## Hidden bots (Bluesky)
+
+Most bot groups say that they are bots. `tags()` in `detect.py` keeps those apart from bots that hide.
+It uses public account facts and the posts themselves:
+
+- `disclosed`: half the bios say bot, automated, RSS, "same content as" or "official account is". Ranked down.
+- `likely-community`: old accounts with real, varied bios. Ranked down.
+- Hidden signals: `new-accounts` (made in the same 2 weeks, recently), `template-bio`, `same-name`, `blank-profiles`,
+  `high-volume` (50+ posts a day since sign-up, under 100 followers), `own-domain` (half the group's links go to
+  one host that 3 or fewer outside users link), `no-sleep` (the quietest 6 hours of the day hold 15%+ of posts).
+- `hidden`: 3 or more hidden signals and not `disclosed`. Ranked first.
+
+On the Bluesky backfill (2101 accounts, Oct 27 – Nov 10 2026), the only `hidden` group is 4 news accounts
+(readgrid, news-wire, kitepost, nextstamina.com) that are 1 month old and post the same text with nextstamina.com links.
+Not used: paraphrased text (the same headline rewritten by an LLM), and likes or replies received.
+
 ## Result on the Telegram dataset
 
 The data has 17.3M comments from 13 Russian channels, and 15,856 accounts are labeled as propaganda accounts.
@@ -96,6 +112,8 @@ Bluesky (live, free, no key):
 ```bash
 uv run monitor.py                 # data/live_report.html, refreshed every 5 min
 WINDOW_H=48 uv run monitor.py     # keep 48 hours of data instead of 24
+uv run backfill.py 2026-10-27 2026-11-10       # 2 weeks of past posts from seed accounts in data/backfill/
+uv run detect.py "data/backfill/*.parquet"     # data/report_backfill.html (about 7 s)
 ```
 
 The monitor reads the Bluesky Jetstream firehose (about 40 posts/s) and keeps a rolling 24-hour window in `data/live/`.

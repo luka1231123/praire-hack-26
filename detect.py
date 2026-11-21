@@ -177,10 +177,39 @@ def _jaccard_mean(texts):
     return np.mean([len(a & b) / len(a | b) for a, b in pairs]) if pairs else None
 
 
-def tags(cl, member, top=100, today=None):
+DISCLOSED = r"\bbots?\b|automated|automatic|auto-?post|rss|news feed|same content as|official account is|not affiliated"
+HIDDEN = {"new-accounts", "template-bio", "same-name", "blank-profiles", "high-volume", "own-domain", "no-sleep"}
+
+
+def _behavior(con, by_c):
+    """Per group: (host, share) of its most linked host, users outside the group who link that host,
+    and the median share of each member's posts in its quietest 6 hours of the day (UTC)."""
+    con.register("tagged", pd.DataFrame([(u, c) for c, us in by_c.items() for u in us], columns=["user_id", "c"]))
+    hosts = con.sql("""with h as (select user_id, regexp_replace(split_part(it[5:], '/', 1), '^www\\.', '') host
+                                  from (select user_id, unnest(items) it from p) where starts_with(it, 'url:'))
+        select t.c, h.host, count(*) n, sum(count(*)) over (partition by t.c) tot,
+               (select count(distinct h2.user_id) from h h2 where h2.host = h.host
+                and h2.user_id not in (select user_id from tagged t2 where t2.c = t.c)) outside
+        from h join tagged t using (user_id) group by 1, 2 qualify row_number() over (partition by t.c order by n desc) = 1""").df()
+    hrs = con.sql("select t.c, user_id, hour(ts) h, count(*) n from p join tagged t using (user_id) group by all").df()
+    quiet = {}
+    for c, g in hrs.groupby("c"):
+        shares = []
+        for _, u in g.groupby("user_id"):
+            h = np.zeros(24); h[u.h.to_numpy()] = u.n.to_numpy()
+            shares.append(min(np.roll(h, -i)[:6].sum() for i in range(24)) / h.sum())
+        quiet[c] = float(np.median(shares))
+    return {r.c: r for r in hosts.itertuples()}, quiet
+
+
+def tags(cl, member, top=100, today=None, con=None):
     """Bluesky only: tag the top groups from public account facts and re-rank them.
     same-name / new-accounts / template-bio / blank-profiles / gone-accounts push a group up;
-    likely-community (old accounts with real, varied bios) pushes it down."""
+    likely-community (old accounts with real, varied bios) and disclosed (bios that say bot, feed or
+    official) push it down. With con, also: high-volume (young, many posts a day, few followers),
+    own-domain (most links go to a host almost nobody outside the group links), no-sleep (no quiet
+    6 hours in the day). 3 or more of the hidden signals and not disclosed = "hidden", ranked first."""
+    import re
     import profiles
     by_c = {}
     for u, c in member.items():
@@ -189,13 +218,19 @@ def tags(cl, member, top=100, today=None):
     if not by_c:
         return cl
     prof = profiles.get([u for us in by_c.values() for u in us[:50]])
-    today = pd.Timestamp(today or pd.Timestamp.utcnow().date())
+    today = pd.Timestamp(today or pd.Timestamp.now('UTC').date())
+    host, quiet = _behavior(con, by_c) if con is not None else ({}, {})
     cl = cl.copy()
     cl["tags"] = ""
     for c, users in by_c.items():
         sample = users[:50]
         ps = [prof[u] for u in sample if u in prof]
         t = []
+        h = host.get(c)
+        if h is not None and h.tot >= 20 and h.n >= 0.5 * h.tot and h.outside <= 3:
+            t.append("own-domain")
+        if quiet.get(c, 0) >= 0.15:  # people sleep: a person's quietest 6 hours hold about 0-5% of their posts
+            t.append("no-sleep")
         if len(sample) - len(ps) >= 0.3 * len(sample):  # deleted, suspended or taken down since they posted
             t.append("gone-accounts")
         if len(ps) < 3:
@@ -215,12 +250,21 @@ def tags(cl, member, top=100, today=None):
         bio = _jaccard_mean([p["bio"] for p in ps])
         if bio is not None and bio >= 0.6:
             t.append("template-bio")
+        rate = [p["posts"] / max((today - pd.Timestamp(p["created"])).days, 1) for p in ps if p["created"]]
+        fol = sorted(p["followers"] for p in ps)
+        if rate and np.median(rate) >= 50 and fol[len(fol) // 2] < 100:
+            t.append("high-volume")
         old = days and (today - days[len(days) // 2]).days > 365
         has_bio = sum(1 for p in ps if len(p["bio"]) >= 10) >= 0.5 * len(ps)
         if old and not t and has_bio and bio < 0.2:
             t.append("likely-community")
+        if sum(1 for p in ps if re.search(DISCLOSED, p["bio"], re.I)) >= 0.5 * len(ps):
+            t.append("disclosed")
+        elif len(HIDDEN & set(t)) >= 3:
+            t.insert(0, "hidden")
         cl.loc[c, "tags"] = " ".join(t)
-        cl.loc[c, "score"] *= 0.3 if "likely-community" in t else 1.5 ** len(t)
+        cl.loc[c, "score"] *= (0.3 if {"likely-community", "disclosed"} & set(t) else
+                               100 if "hidden" in t else 1.5 ** len(t))
     return cl.sort_values("score", ascending=False)
 
 
@@ -298,7 +342,10 @@ if __name__ == "__main__":
     con, cl, member = detect(src, int(sys.argv[2]) if len(sys.argv) > 2 else 20,
                             float(sys.argv[3]) if len(sys.argv) > 3 else 0.2)
     evaluate(con, cl, member)
+    cl = tags(cl, member, con=con)  # Bluesky account facts; no change for other data
     out = src.replace("posts", "report").replace(".parquet", ".html")
+    if "*" in out:  # a glob such as data/backfill/*.parquet: name the report after its folder
+        out = f"data/report_{src.split('/')[-2]}.html"
     kd = kinds(con, cl)
     kind_summary(con, member, kd)
     report(con, cl, member, out=out, kd=kd)

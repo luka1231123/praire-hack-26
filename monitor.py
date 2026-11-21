@@ -94,7 +94,7 @@ async def stream():
 
 def run_detect():
     con, cl, member = detect.detect(f"{LIVE}/*.parquet", MIN_POSTS)
-    cl = detect.tags(cl, member)  # account facts from the public API
+    cl = detect.tags(cl, member, con=con)  # account facts from the public API, plus behavior
     kd = detect.kinds(con, cl)
     detect.report(con, cl, member, out="data/live_report.html",
                   platform_url="https://bsky.app/profile/{}", refresh=60, kd=kd)
