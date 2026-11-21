@@ -93,6 +93,7 @@ async def stream():
 
 def run_detect():
     con, cl, member = detect.detect(f"{LIVE}/*.parquet", MIN_POSTS)
+    cl = detect.tags(cl, member)  # account facts from the public API
     detect.report(con, cl, member, out="data/live_report.html",
                   platform_url="https://bsky.app/profile/{}", refresh=60)
     print(f"{time.strftime('%H:%M')} report: {len(cl)} groups -> data/live_report.html", flush=True)

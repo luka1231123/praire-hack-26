@@ -167,6 +167,64 @@ def labels(con):
     return dict(con.sql("select user_id, any_value(label) from p group by 1 having any_value(label) is not null").fetchall())
 
 
+def _grams(t):
+    t = " ".join(t.lower().split())
+    return {t[i:i + 3] for i in range(len(t) - 2)}
+
+
+def _jaccard_mean(texts):
+    g = [_grams(t) for t in texts if len(t) >= 10]
+    pairs = [(a, b) for i, a in enumerate(g) for b in g[i + 1:]]
+    return np.mean([len(a & b) / len(a | b) for a, b in pairs]) if pairs else None
+
+
+def tags(cl, member, top=100, today=None):
+    """Bluesky only: tag the top groups from public account facts and re-rank them.
+    same-name / new-accounts / template-bio / blank-profiles / gone-accounts push a group up;
+    likely-community (old accounts with real, varied bios) pushes it down."""
+    import profiles
+    by_c = {}
+    for u, c in member.items():
+        if c in set(cl.index[:top]) and u.startswith("did:"):
+            by_c.setdefault(c, []).append(u)
+    if not by_c:
+        return cl
+    prof = profiles.get([u for us in by_c.values() for u in us[:50]])
+    today = pd.Timestamp(today or pd.Timestamp.utcnow().date())
+    cl = cl.copy()
+    cl["tags"] = ""
+    for c, users in by_c.items():
+        sample = users[:50]
+        ps = [prof[u] for u in sample if u in prof]
+        t = []
+        if len(sample) - len(ps) >= 0.3 * len(sample):  # deleted, suspended or taken down since they posted
+            t.append("gone-accounts")
+        if len(ps) < 3:
+            cl.loc[c, "tags"] = " ".join(t)
+            cl.loc[c, "score"] *= 1.5 ** len(t)
+            continue
+        if sum(1 for p in ps if not p["name"] and not p["bio"]) >= 0.5 * len(ps):
+            t.append("blank-profiles")
+        names = [p["name"] for p in ps if p["name"]]
+        if names and max(names.count(n) for n in set(names)) >= 0.5 * len(ps):
+            t.append("same-name")
+        days = sorted(pd.Timestamp(p["created"]) for p in ps if p["created"])
+        batch = max((sum(1 for d in days if a <= d <= a + pd.Timedelta(days=14)) for a in days), default=0)
+        recent = days and (today - days[len(days) // 2]).days <= 180
+        if recent and batch >= 0.5 * len(ps):  # Bluesky had a big real sign-up wave in Nov 2024, so only recent batches
+            t.append("new-accounts")
+        bio = _jaccard_mean([p["bio"] for p in ps])
+        if bio is not None and bio >= 0.6:
+            t.append("template-bio")
+        old = days and (today - days[len(days) // 2]).days > 365
+        has_bio = sum(1 for p in ps if len(p["bio"]) >= 10) >= 0.5 * len(ps)
+        if old and not t and has_bio and bio < 0.2:
+            t.append("likely-community")
+        cl.loc[c, "tags"] = " ".join(t)
+        cl.loc[c, "score"] *= 0.3 if "likely-community" in t else 1.5 ** len(t)
+    return cl.sort_values("score", ascending=False)
+
+
 def report(con, cl, member, out="data/report.html", top=30, platform_url=None, refresh=None, kd=None):
     lab = labels(con)
     kd = kd if kd is not None else kinds(con, cl, top)
@@ -185,7 +243,8 @@ def report(con, cl, member, out="data/report.html", top=30, platform_url=None, r
         ev = "<br>".join(f"<b>{k}</b> ×{n}: {html.escape((s or key)[:140])}" for k, key, n, s in evidence(con, c))
         kind, ks = kd.get(c, ("", {}))
         ktip = html.escape(" ".join(f"{k}={v:.2f}" for k, v in ks.items()))
-        rows.append(f"<tr><td title=\"{ktip}\">{kind}</td><td>{r['size']}</td><td>{r.score:.2f}</td><td>{r.density:.2f}</td><td>{r.sched:.2f}</td>"
+        tg = html.escape(r.get("tags", "") or "")
+        rows.append(f"<tr><td title=\"{ktip}\">{kind}<br><small>{tg}</small></td><td>{r['size']}</td><td>{r.score:.2f}</td><td>{r.density:.2f}</td><td>{r.sched:.2f}</td>"
                     f"<td>{r.tgt:.1f} / {r.fast:.1f} / {r["item"]:.1f} / {r.dup:.1f}</td><td>{lab_txt}</td>"
                     f"<td>{links}{more}</td><td>{ev}</td></tr>")
     meta = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
