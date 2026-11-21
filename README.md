@@ -67,6 +67,11 @@ One group of 207 mixes LeftTroll and RightTroll accounts that amplified the same
 Lift of each signal for one pair of users (both users labeled, against 0.7% for a random pair):
 the same text is 94×, the same link or tag is 9×, and the same reply targets are about 5×.
 
+Tested and not used (Telegram labels, user base rate 3.1%):
+- `style`, the same emoji sequence (2 or more emoji), with flags for a leading emoji and mixed Latin/Cyrillic words:
+  key users are 0–4% labeled. Leading-emoji and mixed-script keys are about 0%. Same-text (`dup`) keys are 62–88%.
+- `dom`, the same link host: key users are 1–13% labeled. It adds almost no pairs that `item` does not find.
+
 ## Run
 
 Needs [uv](https://docs.astral.sh/uv/).
