@@ -73,6 +73,15 @@ WINDOW_H=48 uv run monitor.py     # keep 48 hours of data instead of 24
 
 The monitor reads the Bluesky Jetstream firehose (about 40 posts/s) and keeps a rolling 24-hour window in `data/live/`.
 
+## Slides
+
+`docs/` holds the presentation site (GitHub Pages: Settings → Pages → main, `/docs`).
+`docs/data.js` starts with the numbers above; to fill every chart from the data, run:
+
+```bash
+uv run export_site.py                      # docs/data.js from data/posts.parquet (no user IDs)
+```
+
 ## Dataset
 
 `dataset_v2.csv` (3.9 GB) is not in git. It is too large for GitHub, and it holds Telegram user data.
