@@ -1,4 +1,4 @@
-# praire-hack-26
+# PropNET
 
 Finds groups of accounts that act together (troll farms, state operators, spam networks).
 Detection uses no text model. AI can rewrite the words, but operators still share **behavior**:
