@@ -133,13 +133,14 @@ python3 -m http.server 8765 -d data/site                   # open http://localho
 ```
 
 It writes to `data/site/` (not in git), because it holds real account IDs. The page itself is `osint/index.html`.
-The public website has a fixed snapshot in `docs/osint/` (made 2026-11-21). To update it, run `cp data/site/* docs/osint/`.
+The investigator is the home page of the public website (`docs/index.html`), with a fixed data snapshot in `docs/` (made 2026-11-21).
+To update it, run `cp data/site/* docs/`.
 It flags behavior, not opinions: a person checks the posts and decides.
 
 ## Website
 
-`docs/` is the project website (GitHub Pages: Settings → Pages → main, `/docs`). A dropdown switches
-between datasets. `docs/data.js` starts with the numbers above; to fill every chart, export each dataset:
+`docs/` is the website (GitHub Pages: Settings → Pages → main, `/docs`). The home page is the investigator.
+The project description is `docs/about.html`, where a dropdown switches between datasets. `docs/data.js` starts with the numbers above; to fill every chart, export each dataset:
 
 ```bash
 uv run export_site.py telegram data/posts.parquet 20 0.2

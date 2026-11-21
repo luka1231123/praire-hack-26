@@ -3,629 +3,393 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Behind the Accounts: finding coordinated propaganda networks</title>
-<meta name="description" content="A prairehack26 project that finds state-run propaganda networks by how accounts behave, not what they say.">
+<meta name="referrer" content="no-referrer">
+<title>Behind the Accounts: investigate coordinated accounts</title>
+<meta name="description" content="Groups of accounts that act together, with the evidence for each group and a link to every post.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:ital,wght@0,400;0,500;0,700;0,800;1,400&display=swap">
 <style>
-:root {
-  color-scheme: dark;
-  --bg: #14121a;
-  --panel: #1b1824;
-  --panel-2: #221e2d;
-  --rule: #2e2a3a;
-  --grid: #26222f;
-  --text-primary: #efecf6;
-  --text-secondary: #c4bfd4;
-  --text-muted: #8a849c;
-  --series-1: #9085e9;   /* violet: accounts in general */
-  --series-2: #c98500;   /* amber: flagged / labeled */
-  --series-3: #199e70;   /* aqua: third category */
-  --other: #6e6880;
-  --surface-1: #1b1824;
-  --line: #2e2a3a;
-  --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
-}
+/* same look as about.html (the project page) */
+:root { color-scheme: dark; --bg: #14121a; --panel: #1b1824; --panel-2: #221e2d; --rule: #2e2a3a; --grid: #26222f;
+  --text-primary: #efecf6; --text-secondary: #c4bfd4; --text-muted: #8a849c;
+  --series-1: #9085e9; --series-2: #c98500; --series-3: #199e70; --other: #6e6880;
+  --font: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif; }
 * { box-sizing: border-box; }
-html { scroll-behavior: smooth; scroll-padding-top: 72px; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
-body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); line-height: 1.55; font-size: 17px; -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--text-primary); font-family: var(--font); line-height: 1.55; font-size: 16px; -webkit-font-smoothing: antialiased; }
 a { color: var(--text-primary); text-underline-offset: 3px; text-decoration-color: var(--series-1); }
 .wrap { max-width: 1180px; margin: 0 auto; padding: 0 32px; }
 :focus-visible { outline: 2px solid var(--series-1); outline-offset: 3px; }
-
-/* header */
 header { position: sticky; top: 0; z-index: 20; background: rgba(20,18,26,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
-header .wrap { display: flex; align-items: center; gap: 32px; height: 58px; }
+header .wrap { display: flex; align-items: center; gap: 28px; height: 58px; }
 .brand { font-weight: 800; letter-spacing: -.02em; text-decoration: none; font-size: 17px; white-space: nowrap; }
-nav { display: flex; gap: 22px; flex: 1; overflow-x: auto; scrollbar-width: none; }
+nav { display: flex; gap: 22px; }
 nav a { color: var(--text-muted); text-decoration: none; font-size: 15px; white-space: nowrap; padding: 4px 0; border-bottom: 2px solid transparent; }
 nav a:hover { color: var(--text-primary); }
 nav a.on { color: var(--text-primary); border-bottom-color: var(--series-1); }
-.picker { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); white-space: nowrap; }
-select { background: var(--panel); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 32px 7px 11px;
-  font: inherit; font-size: 14px; cursor: pointer; appearance: none;
+.picker { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--text-muted); white-space: nowrap; margin-left: auto; }
+select, input, button { background: var(--panel); color: var(--text-primary); border: 1px solid var(--rule); border-radius: 4px; padding: 7px 11px; font: inherit; font-size: 14px; }
+select { padding-right: 32px; cursor: pointer; appearance: none;
   background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%), linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
   background-position: calc(100% - 16px) 52%, calc(100% - 11px) 52%; background-size: 5px 5px; background-repeat: no-repeat; }
-@media (max-width: 900px) { nav { display: none; } }
+#q { width: 300px; }
+button { cursor: pointer; } button:hover { border-color: var(--text-muted); }
+@media (max-width: 900px) { nav { display: none; } #q { width: 160px; } .picker span { display: none; } }
+.notice { font-size: 14px; color: #e0b25c; border-bottom: 1px solid var(--rule); padding: 9px 0; }
 
-/* hero */
-.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 40px; align-items: center; padding: 72px 0 64px; }
-.hero h1 { font-size: clamp(42px, 5.2vw, 70px); line-height: .96; letter-spacing: -.045em; font-weight: 800; margin: 0 0 26px; }
-.hero h1 .second { display: block; }
-.hero p { font-size: 20px; color: var(--text-secondary); max-width: 33em; margin: 0 0 30px; line-height: 1.5; }
-.hero-art { position: relative; aspect-ratio: 1.15; }
-.hero-art svg { width: 100%; height: 100%; display: block; }
-.hero-art .note { position: absolute; left: 0; bottom: -4px; font-size: 13px; color: var(--text-muted); }
-.hero-art .flag { opacity: 0; transition: opacity .9s ease .5s; }
-.hero-art.lit .flag { opacity: 1; }
-@media (prefers-reduced-motion: reduce) { .hero-art .flag { transition: none; } }
-.btns { display: flex; gap: 12px; flex-wrap: wrap; }
-.btn { display: inline-block; padding: 12px 20px; border-radius: 4px; border: 1px solid var(--rule); text-decoration: none; font-weight: 500; font-size: 16px; }
+/* page top, like the project hero */
+.top { padding: 56px 0 44px; }
+.crumb { font-size: 14px; color: var(--text-muted); margin: 0 0 14px; }
+.crumb a { color: var(--text-muted); }
+.kicker { font-size: 14px; color: var(--series-1); font-weight: 500; margin: 0 0 8px; }
+h1 { font-size: clamp(36px, 4.6vw, 58px); line-height: 1; letter-spacing: -.045em; font-weight: 800; margin: 0 0 20px; word-break: break-word; }
+.lead { font-size: 20px; color: var(--text-secondary); max-width: 40em; margin: 0 0 24px; line-height: 1.5; }
+.btns { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { padding: 10px 16px; font-size: 15px; font-weight: 500; text-decoration: none; display: inline-block; }
 .btn.primary { background: var(--text-primary); color: var(--bg); border-color: var(--text-primary); }
-.btn:hover { border-color: var(--text-muted); }
-.hero-stats { display: flex; gap: 0; margin-top: 44px; border-top: 1px solid var(--rule); }
-.hero-stats > div { padding: 16px 28px 0 0; margin-right: 28px; border-right: 1px solid var(--rule); }
-.hero-stats > div:last-child { border-right: 0; }
-.hero-stats .num { font-size: 30px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
-.hero-stats .cap { font-size: 14px; color: var(--text-muted); line-height: 1.35; }
-.hero-stats .showing { white-space: nowrap; }
-@media (max-width: 900px) { .hero { grid-template-columns: 1fr; } .hero-stats { flex-wrap: wrap; } }
+.stats { display: flex; flex-wrap: wrap; margin-top: 32px; border-top: 1px solid var(--rule); }
+.stats > div { padding: 14px 26px 0 0; margin-right: 26px; border-right: 1px solid var(--rule); }
+.stats > div:last-child { border-right: 0; }
+.stats b { display: block; font-size: 28px; font-weight: 700; letter-spacing: -.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stats span { font-size: 14px; color: var(--text-muted); }
 
 /* sections: heading column + content column */
-section.block { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 48px; padding: 72px 0; border-top: 1px solid var(--rule); }
-.side h2 { font-size: 30px; line-height: 1.08; letter-spacing: -.03em; font-weight: 800; margin: 0 0 12px; }
-.side p { font-size: 16px; color: var(--text-muted); margin: 0; line-height: 1.5; }
+section.block { display: grid; grid-template-columns: 260px minmax(0, 1fr); gap: 48px; padding: 56px 0; border-top: 1px solid var(--rule); }
+.side h2 { font-size: 28px; line-height: 1.08; letter-spacing: -.03em; font-weight: 800; margin: 0 0 12px; }
+.side p { font-size: 15px; color: var(--text-muted); margin: 0 0 10px; line-height: 1.5; }
 .side { position: sticky; top: 90px; align-self: start; }
-@media (max-width: 900px) { section.block { grid-template-columns: 1fr; gap: 24px; } .side { position: static; } }
-h3 { font-size: 19px; letter-spacing: -.01em; margin: 0 0 4px; font-weight: 700; }
+@media (max-width: 900px) { section.block { grid-template-columns: minmax(0, 1fr); gap: 20px; } .side { position: static; } }
+h3 { font-size: 18px; letter-spacing: -.01em; margin: 0 0 8px; font-weight: 700; }
 p { color: var(--text-secondary); }
 b, strong { color: var(--text-primary); font-weight: 700; }
-
-/* problem figures */
-.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.figures > div { padding: 0 24px; border-left: 1px solid var(--rule); }
-.figures > div:first-child { padding-left: 0; border-left: 0; }
-.figures .big { font-size: 52px; font-weight: 800; letter-spacing: -.04em; line-height: 1; color: var(--series-2); font-variant-numeric: tabular-nums; }
-.figures .what { font-size: 15px; color: var(--text-primary); margin: 10px 0 8px; font-weight: 500; }
-.figures p { font-size: 15px; margin: 0; }
-@media (max-width: 900px) { .figures { grid-template-columns: 1fr; gap: 28px; } .figures > div { padding: 0; border: 0; } }
-
-/* method */
-.argue { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; margin-bottom: 44px; align-items: start; }
-.argue p { margin-top: 0; }
-.pull { font-size: 27px; line-height: 1.22; font-weight: 700; letter-spacing: -.02em; color: var(--text-primary); margin: 0; }
-.pull em { font-style: normal; }
-@media (max-width: 900px) { .argue { grid-template-columns: 1fr; } }
-dl.traces { display: grid; grid-template-columns: 220px minmax(0, 1fr); margin: 0 0 44px; border-top: 1px solid var(--rule); }
-dl.traces dt, dl.traces dd { padding: 14px 0; border-bottom: 1px solid var(--rule); margin: 0; }
-dl.traces dt { font-weight: 700; }
-dl.traces dd { color: var(--text-secondary); }
-ol.steps { list-style: none; padding: 0; margin: 0; counter-reset: s; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 20px; }
-ol.steps li { counter-increment: s; padding-top: 14px; border-top: 2px solid var(--series-1); }
-ol.steps li::before { content: counter(s); font-weight: 800; font-size: 26px; color: var(--series-1); display: block; line-height: 1; margin-bottom: 10px; }
-ol.steps b { display: block; margin-bottom: 4px; }
-ol.steps span { font-size: 15px; color: var(--text-secondary); }
-@media (max-width: 900px) { ol.steps { grid-template-columns: 1fr; } dl.traces { grid-template-columns: 1fr; } dl.traces dt { border-bottom: 0; padding-bottom: 0; } }
-.sub-h { font-size: 15px; color: var(--text-muted); margin: 0 0 12px; font-weight: 500; }
-
-/* data panels */
-.ds-head { margin-bottom: 22px; }
-.ds-head h3 { font-size: 24px; letter-spacing: -.02em; }
-.ds-head p { margin: 6px 0 0; max-width: 46em; }
-.pill { display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 3px; background: var(--panel-2); color: var(--text-muted); margin-top: 10px; }
-.pill.warn { color: #e0b25c; }
-.stats { display: flex; gap: 0; flex-wrap: wrap; margin-bottom: 26px; border-top: 1px solid var(--rule); }
-.stat { padding: 14px 26px 0 0; margin-right: 26px; }
-.stat .num { font-size: 26px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.stat .lbl { font-size: 14px; color: var(--text-muted); }
-.panel { background: var(--panel); border-radius: 6px; padding: 22px 24px; margin-bottom: 20px; }
-.panel h3 { margin-bottom: 2px; }
-.panel .sub { font-size: 15px; color: var(--text-muted); margin: 0 0 16px; }
-.chart { width: 100%; height: 300px; position: relative; }
-.chart.tall { height: 440px; }
-.chart.short { height: 240px; }
-.chart svg { display: block; width: 100%; height: 100%; overflow: visible; }
-.tick { fill: var(--text-muted); font-size: 12px; font-family: var(--font); }
-.dlabel { fill: var(--text-secondary); font-size: 13px; font-family: var(--font); }
-.dlabel.strong { fill: var(--text-primary); font-weight: 700; }
-.legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 14px; color: var(--text-secondary); margin-bottom: 10px; }
-.legend i { display: inline-block; width: 11px; height: 11px; border-radius: 2px; margin-right: 7px; vertical-align: -1px; }
-.legend i.dot { border-radius: 50%; }
-.placeholder { height: 100%; min-height: 150px; background: repeating-linear-gradient(135deg, transparent 0 10px, rgba(144,133,233,.04) 10px 20px);
-  border-radius: 4px; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); font-size: 15px; padding: 20px; line-height: 1.6; }
-code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; color: var(--text-primary); }
-.tabs { display: flex; gap: 4px; margin-bottom: 14px; flex-wrap: wrap; border-bottom: 1px solid var(--rule); }
-.tabs button { background: none; color: var(--text-muted); border: 0; border-bottom: 2px solid transparent; padding: 8px 12px; font: inherit; font-size: 15px; cursor: pointer; margin-bottom: -1px; }
-.tabs button.on { color: var(--text-primary); border-bottom-color: var(--series-1); }
-table.groups { width: 100%; border-collapse: collapse; font-size: 15px; }
-table.groups th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 14px; }
-table.groups td { padding: 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
-table.groups td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); white-space: nowrap; }
-table.groups .kind { display: inline-block; min-width: 46px; font-size: 13px; color: var(--text-muted); }
-.tablewrap { overflow-x: auto; }
-.resultrow { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 28px; align-items: center; }
-.big { font-size: 60px; font-weight: 800; letter-spacing: -.045em; line-height: 1; }
-.accent { color: var(--series-2); }
-.cap { font-size: 15px; color: var(--text-muted); margin-top: 10px; line-height: 1.4; }
-@media (max-width: 900px) { .resultrow { grid-template-columns: 1fr; } }
-
-/* live + about */
-.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 36px; }
-.two p { margin: 6px 0 0; }
-@media (max-width: 900px) { .two { grid-template-columns: 1fr; } }
-.links a { display: block; padding: 16px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
-.links a:first-child { border-top: 1px solid var(--rule); }
-.links a b { display: block; font-size: 18px; }
-.links a span { color: var(--text-muted); font-size: 15px; }
-.links a:hover b { text-decoration: underline; text-decoration-color: var(--series-1); }
-footer { padding: 48px 0 72px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--rule); }
-footer .src { columns: 2; column-gap: 36px; }
-footer .src div { break-inside: avoid; margin-bottom: 6px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.pill { display: inline-block; font-size: 13px; padding: 3px 10px; border-radius: 3px; background: var(--panel-2); color: var(--text-muted); white-space: nowrap; text-decoration: none; }
+a.pill:hover { color: var(--text-primary); }
+.pill.bad { color: var(--series-2); } .pill.ok { color: #3fc296; }
+.kind { font-size: 13px; color: var(--text-muted); }
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th { text-align: left; color: var(--text-muted); font-weight: 500; padding: 8px 10px; border-bottom: 1px solid var(--rule); font-size: 14px; white-space: nowrap; }
+td { padding: 10px; border-bottom: 1px solid var(--grid); color: var(--text-secondary); vertical-align: top; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; color: var(--text-primary); white-space: nowrap; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--panel); }
+.scroll { overflow-x: auto; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+.muted { color: var(--text-muted); }
+.key { border-top: 1px solid var(--rule); padding: 14px 0; }
+.key:first-child { border-top: 0; padding-top: 0; }
+.key .txt { color: var(--text-primary); white-space: pre-wrap; word-break: break-word; margin-top: 6px; }
+.posts { margin: 8px 0 0; font-size: 14px; border-left: 2px solid var(--rule); padding-left: 14px; }
+.posts div { padding: 4px 0; color: var(--text-secondary); word-break: break-word; }
+details summary { cursor: pointer; color: var(--text-muted); font-size: 14px; margin-top: 6px; }
+.heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; font-size: 11px; color: var(--text-muted); max-width: 720px; }
+.heat div { height: 18px; border-radius: 2px; }
+.heat .l { background: none; height: auto; line-height: 18px; }
+svg text { fill: var(--text-muted); font-size: 11px; font-family: var(--font); }
+.hits a { display: block; padding: 10px 0; border-bottom: 1px solid var(--rule); text-decoration: none; }
+.hits a:hover { color: var(--series-1); }
+code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .86em; background: var(--panel-2); padding: 2px 6px; border-radius: 3px; }
+footer { padding: 40px 0 64px; font-size: 14px; color: var(--text-muted); border-top: 1px solid var(--rule); }
 footer a { color: var(--text-secondary); }
-@media (max-width: 900px) { footer .src { columns: 1; } }
-#tip { position: fixed; pointer-events: none; background: var(--panel-2); border: 1px solid var(--rule); color: var(--text-primary);
-  padding: 8px 11px; border-radius: 4px; font-size: 14px; line-height: 1.4; opacity: 0; transition: opacity .1s; z-index: 50; max-width: 320px; }
-#tip .m { color: var(--text-muted); }
 </style>
 </head>
 <body>
-
 <header><div class="wrap">
-  <a class="brand" href="#top">Behind the Accounts</a>
-  <nav id="nav">
-    <a href="#problem">Problem</a><a href="#method">Method</a><a href="#data">Data</a><a href="#signals">Signals</a>
-    <a href="#results">Results</a><a href="#networks">Networks</a><a href="#about">About</a><a href="osint/">Investigate</a>
-  </nav>
-  <label class="picker">Dataset <select id="ds" aria-label="Dataset shown on this page"></select></label>
+  <a class="brand" href="./">Behind the Accounts</a>
+  <nav><a class="on" href="./">Investigate</a><a id="about" href="about.html">About the project</a></nav>
+  <label class="picker"><span>Dataset</span> <select id="ds" aria-label="Dataset"></select></label>
+  <input id="q" type="search" placeholder="Search handle, DID, link, #tag, text" aria-label="Search">
 </div></header>
-
-<main id="top" class="wrap">
-
-<div class="hero">
-  <div>
-    <h1>Different accounts.<span class="second">Same operator.</span></h1>
-    <p>State-run propaganda networks now reword every post with AI. We find them by what they can't easily change: who they reply to, what they link, and when they work.</p>
-    <div class="btns">
-      <a class="btn primary" href="#results">See the results</a>
-      <a class="btn" href="osint/">Investigate the groups</a>
-      <a class="btn" href="https://github.com/luka1231123/praire-hack-26/blob/main/Purpose.md">Read why it matters</a>
-    </div>
-    <div class="hero-stats" id="hero-stats"></div>
-    <p class="cap" id="hero-showing" style="margin:14px 0 0;font-size:14px"></p>
-  </div>
-  <div class="hero-art" id="hero-art"><svg id="hero-net" viewBox="0 0 560 490" role="img" aria-label="Accounts as dots; one coordinated group is linked and highlighted"></svg><div class="note" id="hero-note"></div></div>
-</div>
-
-<section class="block" id="problem">
-  <div class="side"><h2>The problem</h2><p>Fake accounts acting together can make a fringe idea look popular.</p></div>
-  <div class="figures">
-    <div><div class="big">25,000</div><div class="what">TikTok accounts in one pro-Russian push</div><p>Romania annulled its 2024 presidential first round. The candidate went from under 1% in the polls to first place.</p></div>
-    <div><div class="big">7,700</div><div class="what">Facebook accounts in China's Spamouflage</div><p>Meta's largest takedown ever. The accounts kept office hours in China's time zone.</p></div>
-    <div><div class="big">3.6M</div><div class="what">articles from Russia's Pravda network</div><p>Published in 2024 to seed AI chatbots, which repeated its claims about a third of the time in one audit.</p></div>
-  </div>
-</section>
-
-<section class="block" id="method">
-  <div class="side"><h2>Method</h2><p>No text model. We score what accounts do together.</p></div>
-  <div>
-    <div class="argue">
-      <p>Copy-paste used to give networks away. Now AI rewrites every post, AI-text detectors fail once text is paraphrased, and reworded propaganda makes false claims seem more widely believed. Operators can change their words. They can't easily change their behavior.</p>
-      <p class="pull">Don't ask whether a post was written by AI. <em>Ask whether these accounts are working together.</em></p>
-    </div>
-    <p class="sub-h">Five traces we score for every pair of accounts</p>
-    <dl class="traces">
-      <dt>Same reply targets</dt><dd>They reply to the same messages.</dd>
-      <dt>Same timing</dt><dd>They hit the same post, link or tag within 60 seconds of each other.</dd>
-      <dt>Same links and tags</dt><dd>They share the same URLs, hashtags, mentions or reposts. Rare ones count most: a link two accounts share outweighs one shared by fifty.</dd>
-      <dt>Same template text</dt><dd>Their posts match once case, links, digits, punctuation and emoji are removed.</dd>
-      <dt>Same schedule</dt><dd>Their weekly activity lines up hour by hour.</dd>
-    </dl>
-    <p class="sub-h">From raw posts to ranked groups</p>
-    <ol class="steps">
-      <li><b>One table</b><span>Every post becomes a row: account, time, text, reply target, links and tags.</span></li>
-      <li><b>Shared keys</b><span>List each reply target, link, tag and cleaned text, and who touched it.</span></li>
-      <li><b>Score pairs</b><span>Each shared key adds 1/(sharers − 1). Multiply by schedule match.</span></li>
-      <li><b>Find groups</b><span>Leiden clustering pulls out tight groups of three or more accounts.</span></li>
-      <li><b>Rank and explain</b><span>Rank groups by shared content per member, with the evidence.</span></li>
-    </ol>
-  </div>
-</section>
-
-<section class="block" id="data">
-  <div class="side"><h2>Data</h2><p>Switch datasets with the menu at the top of the page.</p></div>
-  <div>
-    <div class="ds-head"><h3 id="ds-title"></h3><p id="ds-desc"></p><span class="pill" id="ds-pill"></span></div>
-    <div class="stats" id="ds-stats"></div>
-    <div class="panel"><h3>Activity over time</h3><p class="sub" id="monthly-sub">Posts per month.</p>
-      <div class="legend" id="monthly-legend"></div><div class="chart" id="c-monthly"></div></div>
-    <div class="panel"><h3 id="bd-title">Where the posts are</h3><p class="sub" id="bd-sub"></p><div class="chart" id="c-breakdown"></div></div>
-  </div>
-</section>
-
-<section class="block" id="signals">
-  <div class="side"><h2>Signals</h2><p>What gives coordinated accounts away in this dataset.</p></div>
-  <div>
-    <div class="panel"><h3>Weekly schedule</h3><p class="sub" id="sched-sub">Average share of each account's posts by hour of the week, in the dataset's time zone (likely UTC). Brighter means busier.</p>
-      <div class="chart short" id="c-sched"></div></div>
-    <div class="panel"><h3 id="lift-title">Which shared traces matter most</h3><p class="sub" id="lift-sub"></p><div class="chart short" id="c-lift"></div></div>
-  </div>
-</section>
-
-<section class="block" id="results">
-  <div class="side"><h2 id="res-title">Results</h2><p id="res-lead"></p></div>
-  <div>
-    <div class="panel"><div class="resultrow">
-      <div><div class="big accent" id="res-big">—</div><div class="cap" id="res-cap"></div></div>
-      <div><div class="legend" id="prec-legend"></div><div class="chart" id="c-prec"></div></div>
-    </div></div>
-    <div class="panel"><h3>Every group, by score</h3><p class="sub" id="scatter-sub"></p><div class="chart" id="c-scatter"></div></div>
-  </div>
-</section>
-
-<section class="block" id="networks">
-  <div class="side"><h2>Inside the top groups</h2><p>Accounts in a top-ranked group, linked when they share traces. Account IDs are removed.</p></div>
-  <div>
-    <div class="panel"><div class="tabs" id="net-tabs"></div><div class="legend" id="net-legend"></div><div class="chart tall" id="c-net"></div></div>
-    <div class="panel"><h3>What the top groups share</h3><p class="sub">The traces shared by the most members of each group.</p><div class="tablewrap" id="c-groups"></div></div>
-  </div>
-</section>
-
-<section class="block" id="live">
-  <div class="side"><h2>Beyond the datasets</h2></div>
-  <div class="two">
-    <div><h3>Runs live on Bluesky</h3><p><code>monitor.py</code> reads Bluesky's public firehose, about 40 posts a second with no key needed. It keeps a rolling 24-hour window and refreshes its report every five minutes.</p></div>
-    <div><h3>Judges behavior, not opinions</h3><p>Like Meta's own policy, it flags fake accounts working together. It never scores what a post argues, so it doesn't police viewpoints.</p></div>
-  </div>
-</section>
-
-<section class="block" id="about">
-  <div class="side"><h2>About</h2><p>Built for prairehack26.</p></div>
-  <div class="two">
-    <div>
-      <p style="margin-top:0">Coordinated networks have already changed real elections, and AI now lets them reword every post so copy-paste checks and AI-text detectors miss them. Behind the Accounts looks for what operators can't easily hide: the same reply targets, timing, links, templates and work schedules.</p>
-      <p>We test it on two datasets with an answer key, Russian Telegram comments labeled by researchers and Russian IRA troll accounts on X, and run it live on Bluesky.</p>
-    </div>
-    <div class="links">
-      <a href="https://github.com/luka1231123/praire-hack-26/blob/main/Purpose.md"><b>Purpose</b><span>Why this matters, why detection fails, and our approach, with sources.</span></a>
-      <a href="https://github.com/luka1231123/praire-hack-26#readme"><b>README</b><span>How it works, results, and how to run it.</span></a>
-      <a href="https://github.com/luka1231123/praire-hack-26"><b>Source code</b><span>github.com/luka1231123/praire-hack-26</span></a>
-    </div>
-  </div>
-</section>
-
-</main>
-
-<footer><div class="wrap">
-  <h3 style="color:var(--text-secondary);font-size:16px;margin-bottom:14px">Sources</h3>
-  <div class="src">
-    <div>Kireev et al., "Characterizing and Detecting Propaganda-Spreading Accounts on Telegram," USENIX Security 2025 (<a href="https://zenodo.org/records/14736756">dataset</a>)</div>
-    <div><a href="https://github.com/fivethirtyeight/russian-troll-tweets">FiveThirtyEight: Russian troll tweets</a></div>
-    <div><a href="https://thehackernews.com/2024/12/romania-cancels-presidential-election.html">The Hacker News: Romania annuls election</a></div>
-    <div><a href="https://www.pbs.org/newshour/show/romania-election-results-thrown-out-after-russian-interference-claims">PBS NewsHour: Romania election thrown out</a></div>
-    <div><a href="https://www.securityweek.com/meta-fights-sprawling-chinese-spamouflage-operation/amp/">SecurityWeek: Meta's Spamouflage takedown</a></div>
-    <div><a href="https://openai.com/index/disrupting-malicious-ai-uses">OpenAI threat report, February 2026</a></div>
-    <div><a href="https://scienceblog.com/neuroedge/?p=225">ScienceBlog: the AIPasta study</a></div>
-    <div><a href="https://arxiv.org/html/2511.00416v1">PADBen: AI-text detectors against paraphrasing</a></div>
-    <div><a href="https://united24media.com/war-in-ukraine/researchers-reveal-how-russias-propaganda-network-infects-leading-ai-chatbots-7106">United24: the Pravda network and AI chatbots</a></div>
-  </div>
-</div></footer>
-
-<div id="tip"></div>
-<script src="data.js"></script>
+<div class="notice"><div class="wrap">This tool flags coordinated behavior, not opinions. A group can be a real community. Open each post at its source and decide yourself.</div></div>
+<main class="wrap" id="app"><div class="top"><p class="lead">Loading…</p></div></main>
+<footer><div class="wrap">Behind the Accounts, a prairehack26 project. Data from public posts only. <a href="about.html" id="about2">How it works</a></div></footer>
 <script>
-const ALL = window.DATASETS || {};
-const INFO = {
-  telegram: { desc: 'Comments from 13 Russian Telegram channels. Researchers labeled which accounts spread propaganda (Kireev et al., USENIX Security 2025), so we can check how many accounts in each found group are labeled.',
-    cmd: 'uv run export_site.py telegram data/posts.parquet 20 0.2' },
-  x: { desc: "Tweets from accounts run by Russia's Internet Research Agency, published by FiveThirtyEight. Every account is a troll, tagged with a role (RightTroll, LeftTroll, NewsFeed, HashtagGamer, ...). The test: do the groups we find match those real roles?",
-    cmd: 'uv run export_site.py x data/posts_x.parquet 20 5' },
-  bluesky: { desc: "Live posts from Bluesky's public firehose, a rolling 24-hour window. There is no answer key, so these groups are leads to investigate, not confirmed networks.",
-    cmd: 'uv run export_site.py bluesky "data/live/*.parquet" 3' },
-};
-let key = null, D = {};
-
-const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-const C = { s1: css('--series-1'), s2: css('--series-2'), s3: css('--series-3'), other: css('--other'), grid: css('--grid'),
-  line: css('--line'), muted: css('--text-muted'), surf: css('--surface-1') };
+'use strict';
 const $ = id => document.getElementById(id);
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const fmt = n => n == null ? '—' : n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, '') + 'M' : n >= 1e4 ? Math.round(n / 1e3) + 'K' : n.toLocaleString();
-const pct = (x, d = 1) => x == null ? '—' : (x * 100).toFixed(d) + '%';
-const times = x => (x >= 10 ? Math.round(x) : x.toFixed(1)) + '×';
-const needs = () => `This chart fills in once we run<br><code>${esc((INFO[key] || {}).cmd || 'uv run export_site.py ' + key)}</code>`;
-const ph = (el, msg) => { el.innerHTML = `<div class="placeholder"><div>${msg || needs()}</div></div>`; };
-const size = el => [Math.max(240, el.clientWidth), Math.max(140, el.clientHeight)];
-const tip = html => ` data-tip="${esc(html)}"`;
-const svg = (el, W, H, s) => { el.innerHTML = `<svg viewBox="0 0 ${W} ${H}" role="img">${s}</svg>`; };
-const legend = (id, items) => { const el = $(id); el.style.display = items.length ? '' : 'none';
-  el.innerHTML = items.map(([c, t, dot]) => `<span><i class="${dot ? 'dot' : ''}" style="background:${c}"></i>${esc(t)}</span>`).join(''); };
-function topRound(x, y, w, h, r) { r = Math.min(r, w / 2, h); if (h <= 0) return '';
-  return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
-function rightRound(x, y, w, h, r) { r = Math.min(r, h / 2, w); if (w <= 0) return '';
-  return `M${x},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h - r}Q${x + w},${y + h} ${x + w - r},${y + h}H${x}Z`; }
-function niceMax(v) { const p = Math.pow(10, Math.floor(Math.log10(v || 1))); for (const m of [1, 2, 2.5, 5, 10]) if (m * p >= v) return m * p; return 10 * p; }
-const isLab = () => D.truth === 'labels', isCat = () => D.truth === 'categories';
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ext = (url, text) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${text}</a>` : text;
+const day = t => new Date(t * 1000).toISOString().slice(0, 10);
+const when = t => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+const num = n => (n ?? 0).toLocaleString('en-US');
+let D = null, name = null, U = {}, K = {};   // dataset, its name, account index, key index
 
-/* ---------- hero + dataset header ---------- */
-function headline() {
-  const P = D.precision || [], o = D.overview || {};
-  if (isLab() && P.length && o.base_rate) { const p = P.find(r => r.k === 50) || P[0];
-    return [times(p.labeled / o.base_rate), `better than chance: ${pct(p.labeled)} of accounts in the top ${p.k} groups are labeled propaganda, vs ${pct(o.base_rate)} overall`]; }
-  if (isCat() && P.length) { const p = P[P.length - 1];
-    return [pct(p.purity, 0), `of accounts in found groups share their group's main troll role, vs ${pct(p.random, 0)} for random groups`]; }
+// ---------- links to the source platform ----------
+function postUrl(id, user) {
+  if (D.platform === 'bluesky') {
+    const m = /^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/.exec(id || '');
+    if (!m) return null;
+    return m[2] === 'app.bsky.feed.post' ? `https://bsky.app/profile/${m[1]}/post/${m[3]}` : `https://bsky.app/profile/${m[1]}`;
+  }
+  if (D.platform === 'x') return `https://x.com/${encodeURIComponent(user)}/status/${encodeURIComponent(id)}`;
   return null;
 }
-function drawHeader() {
-  const o = D.overview || {}, h = headline();
-  const hs = [[fmt(o.posts), 'posts analyzed'], [fmt(o.users || o.active_users), 'accounts']];
-  if (h) hs.push([h[0], 'headline result']);
-  $('hero-stats').innerHTML = hs.filter(s => s[0] !== '—').map(([n, c]) => `<div><div class="num">${esc(n)}</div><div class="cap">${esc(c)}</div></div>`).join('') +
-    '';
-  $('hero-showing').innerHTML = `Showing the <b>${esc(D.name || key)}</b> dataset. Switch at the top of the page.`;
-  $('ds-title').textContent = D.name || key;
-  $('ds-desc').textContent = (INFO[key] || {}).desc || '';
-  const pill = $('ds-pill');
-  if (D.seed) { pill.textContent = 'Partial: numbers from README'; pill.className = 'pill warn'; }
-  else { pill.textContent = D.generated ? 'Exported ' + D.generated.replace('T', ' ') : ''; pill.className = 'pill'; }
-  const items = [[fmt(o.posts), 'posts'], [fmt(o.users), 'accounts'], [fmt(o.threads), 'channels'], [fmt(o.categories), 'account roles'],
-    [fmt(o.labeled_users), 'labeled propaganda accounts'], [o.base_rate != null ? pct(o.base_rate) : '—', `of active accounts (${D.min_posts || 20}+ posts) labeled`],
-    [o.start ? o.start.slice(0, 7) + ' – ' + o.end.slice(0, 7) : '—', 'time span']];
-  $('ds-stats').innerHTML = items.filter(i => i[0] !== '—' && i[0] !== '0').map(([n, c]) => `<div class="stat"><div class="num">${esc(n)}</div><div class="lbl">${esc(c)}</div></div>`).join('');
+function profileUrl(u) {
+  if (D.platform === 'bluesky') return `https://bsky.app/profile/${u}`;
+  if (D.platform === 'x') return `https://x.com/${encodeURIComponent(u)}`;
+  return null;
 }
+const archive = url => url ? `https://web.archive.org/web/*/${url}` : null;
+const who = u => { const m = U[u]?.m; return m?.handle ? '@' + m.handle : (D.platform === 'x' ? '@' + u : u.slice(0, 18) + (u.length > 18 ? '…' : '')); };
 
-/* ---------- activity over time ---------- */
-function drawMonthly() {
-  const el = $('c-monthly'), rows = D.monthly;
-  if (!rows || !rows.length) { legend('monthly-legend', []); return ph(el); }
-  const split = rows[0].labeled_posts != null;
-  legend('monthly-legend', split ? [[C.s2, 'By labeled propaganda accounts'], [C.s1, 'By other accounts']] : []);
-  $('monthly-sub').textContent = split ? 'Posts per month, split by whether the author is a labeled propaganda account.' : 'Posts per month.';
-  const [W, H] = size(el), m = { l: 52, r: 6, t: 8, b: 26 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = niceMax(Math.max(...rows.map(r => r.posts))), y = v => m.t + ih - v / max * ih;
-  const bw = iw / rows.length, gap = Math.min(2, bw * .25);
-  let s = '';
-  for (let i = 0; i <= 4; i++) { const v = max * i / 4;
-    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${C.grid}"/><text class="tick" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${fmt(v)}</text>`; }
-  const every = Math.ceil(rows.length / Math.max(2, Math.floor(iw / 80)));
-  rows.forEach((r, i) => {
-    const x = m.l + i * bw + gap / 2, w = Math.max(1, bw - gap), lp = split ? r.labeled_posts : 0, hl = lp / max * ih, ho = (r.posts - lp) / max * ih;
-    const t = `<b>${r.month}</b><br>${r.posts.toLocaleString()} posts` + (split ? `<br><span class="m">${pct(lp / r.posts)} by labeled accounts</span>` : '');
-    s += `<g${tip(t)}><rect x="${m.l + i * bw}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>`;
-    const yl = m.t + ih - hl;
-    if (hl > 0) s += `<rect x="${x}" y="${yl}" width="${w}" height="${hl}" fill="${C.s2}"/>`;
-    if (ho > 0) s += `<path d="${topRound(x, yl - ho, w, Math.max(0, ho - (hl > 0 ? 2 : 0)), 3)}" fill="${C.s1}"/>`;
-    s += `</g>`;
-    if (i % every === 0) s += `<text class="tick" x="${x + w / 2}" y="${H - 6}" text-anchor="middle">${r.month}</text>`;
-  });
-  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="${C.line}"/>`;
-  svg(el, W, H, s);
-}
-
-/* ---------- breakdown by channel / category ---------- */
-function drawBreakdown() {
-  const el = $('c-breakdown'), B = D.breakdown;
-  if (!B) { $('bd-title').textContent = 'Where the posts are'; $('bd-sub').textContent = ''; el.style.height = ''; return ph(el); }
-  const ch = B.by === 'channel';
-  $('bd-title').textContent = ch ? 'Posts per channel' : 'Posts per account role';
-  $('bd-sub').textContent = ch && isLab() ? 'With the share written by labeled propaganda accounts.' : 'With the number of accounts.';
-  const rows = B.rows; el.style.height = Math.max(160, rows.length * 34 + 10) + 'px';
-  const [W, H] = size(el), m = { l: 200, r: 210, t: 4 }, iw = W - m.l - m.r, bh = (H - m.t) / rows.length, max = Math.max(...rows.map(r => r.posts));
-  let s = '';
-  rows.forEach((r, i) => { const y = m.t + i * bh, h = Math.min(20, bh - 10), yy = y + (bh - h) / 2, w = Math.max(2, r.posts / max * iw);
-    const extra = r.labeled_share != null ? `${pct(r.labeled_share)} labeled` : `${r.users.toLocaleString()} accounts`;
-    s += `<g${tip(`<b>${esc(r.name)}</b><br>${r.posts.toLocaleString()} posts · ${r.users.toLocaleString()} accounts` + (r.labeled_share != null ? `<br><span class="m">${pct(r.labeled_share)} by labeled accounts</span>` : ''))}>`;
-    s += `<rect x="0" y="${y}" width="${W}" height="${bh}" fill="transparent"/>`;
-    s += `<text class="dlabel" x="${m.l - 12}" y="${yy + h / 2 + 5}" text-anchor="end">${esc(r.name.length > 24 ? r.name.slice(0, 23) + '…' : r.name)}</text>`;
-    s += `<path d="${rightRound(m.l, yy, w, h, 4)}" fill="${C.s1}"/>`;
-    s += `<text class="dlabel" x="${m.l + w + 10}" y="${yy + h / 2 + 5}"><tspan class="dlabel strong">${fmt(r.posts)}</tspan>  ·  ${extra}</text></g>`; });
-  svg(el, W, H, s);
-}
-
-/* ---------- schedule heatmaps ---------- */
-const RAMP = ['#1e1b29', '#2b2552', '#3d3384', '#5446b5', '#7466d8', '#9f95ee', '#d6d1fa'];
-function rampColor(t) { t = Math.max(0, Math.min(1, t)); const p = t * (RAMP.length - 1), i = Math.min(RAMP.length - 2, Math.floor(p)), f = p - i;
-  const a = RAMP[i].match(/\w\w/g).map(h => parseInt(h, 16)), b = RAMP[i + 1].match(/\w\w/g).map(h => parseInt(h, 16));
-  return '#' + a.map((v, k) => Math.round(v + (b[k] - v) * f).toString(16).padStart(2, '0')).join(''); }
-function drawSchedule() {
-  const el = $('c-sched'), S = D.schedule;
-  if (!S || !S.length) return ph(el);
-  const [W, H] = size(el), days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'], gapX = 48, lx = 36;
-  const pw = (W - gapX * (S.length - 1)) / S.length, cw = (pw - lx) / 24, ch = Math.min(24, (H - 70) / 7);
-  const max = Math.max(...S.flatMap(p => p.values));
-  let s = '';
-  S.forEach((p, pi) => { const ox = pi * (pw + gapX);
-    s += `<text class="dlabel strong" x="${ox + lx}" y="14">${esc(p.name)}</text>`;
-    for (let d = 0; d < 7; d++) { s += `<text class="tick" x="${ox + lx - 7}" y="${28 + d * ch + ch / 2 + 4}" text-anchor="end">${days[d]}</text>`;
-      for (let h = 0; h < 24; h++) { const v = p.values[d * 24 + h];
-        s += `<rect${tip(`<b>${esc(p.name)}</b><br>${days[d]} ${String(h).padStart(2, '0')}:00<br><span class="m">${pct(v, 2)} of posts</span>`)} x="${ox + lx + h * cw + 1}" y="${28 + d * ch + 1}" width="${Math.max(1, cw - 2)}" height="${ch - 2}" rx="2" fill="${rampColor(v / max)}"/>`; } }
-    for (const h of [0, 6, 12, 18]) s += `<text class="tick" x="${ox + lx + h * cw}" y="${28 + 7 * ch + 15}">${String(h).padStart(2, '0')}:00</text>`; });
-  const lgY = 28 + 7 * ch + 30, lgX = W - 210;
-  for (let i = 0; i < 40; i++) s += `<rect x="${lgX + i * 4}" y="${lgY}" width="4" height="9" fill="${rampColor(i / 39)}"/>`;
-  s += `<text class="tick" x="${lgX - 8}" y="${lgY + 9}" text-anchor="end">less</text><text class="tick" x="${lgX + 168}" y="${lgY + 9}">more</text>`;
-  svg(el, W, H, s);
-}
-
-/* ---------- signal lift ---------- */
-function drawLift() {
-  const el = $('c-lift'), L = D.lift;
-  if (!L || !L.signals) { $('lift-title').textContent = 'Which shared traces matter most';
-    $('lift-sub').textContent = '';
-    return ph(el, isCat() ? 'This needs propaganda / not-propaganda labels per account.<br>In this dataset every account is a troll, so see the group purity results below.' : undefined); }
-  const rows = L.signals.filter(r => r.lift != null).sort((a, b) => b.lift - a.lift);
-  if (rows.length) $('lift-title').textContent = `${rows[0].name} is the strongest clue`;
-  $('lift-sub').textContent = `How much more likely two linked accounts are both propaganda accounts when they share each trace, vs a random linked pair (${pct(L.random_pair)} both labeled).`;
-  const [W, H] = size(el), m = { l: 200, r: 80, t: 4 }, iw = W - m.l - m.r, bh = (H - m.t) / rows.length, max = Math.max(...rows.map(r => r.lift));
-  let s = '';
-  rows.forEach((r, i) => { const y = m.t + i * bh, h = Math.min(30, bh - 16), yy = y + (bh - h) / 2, w = Math.max(3, r.lift / max * iw);
-    const extra = r.both_labeled != null ? `<br><span class="m">${pct(r.both_labeled)} of ${r.pairs.toLocaleString()} pairs both labeled</span>` : '';
-    s += `<g${tip(`<b>${esc(r.name)}</b><br>${r.lift.toFixed(1)}× baseline${extra}`)}><rect x="0" y="${y}" width="${W}" height="${bh}" fill="transparent"/>`;
-    s += `<text class="dlabel" style="font-size:15px" x="${m.l - 12}" y="${yy + h / 2 + 5}" text-anchor="end">${esc(r.name)}</text>`;
-    s += `<path d="${rightRound(m.l, yy, w, h, 4)}" fill="${C.s1}"/>`;
-    s += `<text class="dlabel strong" style="font-size:18px" x="${m.l + w + 10}" y="${yy + h / 2 + 6}">${times(r.lift)}</text></g>`; });
-  svg(el, W, H, s);
-}
-
-/* ---------- results ---------- */
-function drawResults() {
-  const el = $('c-prec'), P = D.precision, o = D.overview || {}, h = headline();
-  $('res-big').textContent = h ? h[0] : '—';
-  $('res-cap').textContent = h ? h[1] : '';
-  if (isLab()) { $('res-title').textContent = h ? `Top groups are ${h[0]} richer in propaganda accounts` : 'Are the top groups propaganda accounts?';
-    $('res-lead').textContent = 'Share of accounts in the top-ranked groups that researchers labeled as propaganda, against all active accounts.'; }
-  else if (isCat()) { $('res-title').textContent = 'Found groups match the real troll roles';
-    $('res-lead').textContent = 'Purity: the share of accounts in each found group that have the group\'s most common role. Random groups of the same sizes set the baseline.'; }
-  else { $('res-title').textContent = 'Top groups'; $('res-lead').textContent = 'This dataset has no answer key, so there is no accuracy score. The groups below are leads to investigate.'; }
-  if (!P || !P.length || (!isLab() && !isCat())) { legend('prec-legend', []); return ph(el, !isLab() && !isCat() ? 'No answer key for this dataset.' : undefined); }
-  const lab = k => k === 'all' ? 'All groups' : `Top ${k}`;
-  const series = isLab() ? [['labeled', C.s1, 'Labeled propaganda accounts']] : [['purity', C.s1, 'Found groups'], ['random', C.other, 'Random groups (same sizes)']];
-  legend('prec-legend', isCat() ? series.map(s => [s[1], s[2]]) : []);
-  const [W, H] = size(el), m = { l: 44, r: isLab() ? 130 : 8, t: 26, b: 42 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const max = 1, y = v => m.t + ih - v / max * ih, gw = iw / P.length, bw = Math.min(70, gw * .6 / series.length);
-  let s = '';
-  for (let i = 0; i <= 4; i++) { const v = i / 4; s += `<line x1="${m.l}" x2="${W - m.r}" y1="${y(v)}" y2="${y(v)}" stroke="${C.grid}"/><text class="tick" x="${m.l - 8}" y="${y(v) + 4}" text-anchor="end">${v * 100}%</text>`; }
-  P.forEach((p, i) => { const gx = m.l + i * gw + (gw - bw * series.length - 4 * (series.length - 1)) / 2;
-    s += `<g${tip(`<b>${lab(p.k)}</b>` + (p.users ? `<br>${p.users.toLocaleString()} accounts` : '') + series.map(([k, , n]) => `<br><span class="m">${n}: ${pct(p[k])}</span>`).join(''))}>`;
-    s += `<rect x="${m.l + i * gw}" y="${m.t}" width="${gw}" height="${ih}" fill="transparent"/>`;
-    series.forEach(([k, c], j) => { const x = gx + j * (bw + 4), v = p[k];
-      if (v == null) return;
-      s += `<path d="${topRound(x, y(v), bw, m.t + ih - y(v), 4)}" fill="${c}"/><text class="dlabel strong" x="${x + bw / 2}" y="${y(v) - 8}" text-anchor="middle">${pct(v, 0)}</text>`; });
-    s += `<text class="dlabel" x="${m.l + i * gw + gw / 2}" y="${H - 22}" text-anchor="middle">${lab(p.k)}</text>`;
-    if (p.users) s += `<text class="tick" x="${m.l + i * gw + gw / 2}" y="${H - 5}" text-anchor="middle">${fmt(p.users)} accts</text>`;
-    s += `</g>`; });
-  if (isLab() && o.base_rate) { const b = y(o.base_rate);
-    s += `<line x1="${m.l}" x2="${W - m.r}" y1="${b}" y2="${b}" stroke="${C.s2}" stroke-width="2" stroke-dasharray="6 5"/>
-      <text class="dlabel" x="${W - m.r + 10}" y="${b - 3}">All active</text><text class="dlabel" x="${W - m.r + 10}" y="${b + 14}">accounts: ${pct(o.base_rate)}</text>`; }
-  s += `<line x1="${m.l}" x2="${W - m.r}" y1="${m.t + ih}" y2="${m.t + ih}" stroke="${C.line}"/>`;
-  svg(el, W, H, s);
-}
-
-function drawScatter() {
-  const el = $('c-scatter'), S = D.scatter;
-  const yName = isLab() ? 'Labeled share' : isCat() ? 'Share with main role' : null;
-  $('scatter-sub').textContent = yName ? `Each dot is a group: score (shared content per member) across, ${yName.toLowerCase()} up. Dot size is group size.` : '';
-  if (!S || !S.length || S[0].y == null) return ph(el, yName ? undefined : 'No answer key for this dataset.');
-  const [W, H] = size(el), m = { l: 52, r: 16, t: 14, b: 42 }, iw = W - m.l - m.r, ih = H - m.t - m.b;
-  const xs = S.map(d => Math.log10(Math.max(d.score, 1e-3))), x0 = Math.floor(Math.min(...xs)), x1 = Math.ceil(Math.max(...xs));
-  const X = v => m.l + (Math.log10(Math.max(v, 1e-3)) - x0) / ((x1 - x0) || 1) * iw, Y = v => m.t + ih - v * ih;
-  const maxSize = Math.max(...S.map(d => d.size)), R = n => 3 + Math.sqrt(n / maxSize) * 14;
-  let s = '';
-  for (let i = 0; i <= 4; i++) { const v = i / 4; s += `<line x1="${m.l}" x2="${W - m.r}" y1="${Y(v)}" y2="${Y(v)}" stroke="${C.grid}"/><text class="tick" x="${m.l - 8}" y="${Y(v) + 4}" text-anchor="end">${v * 100}%</text>`; }
-  for (let e = x0; e <= x1; e++) s += `<text class="tick" x="${X(10 ** e)}" y="${H - 22}" text-anchor="middle">${10 ** e >= 1 ? 10 ** e : (10 ** e).toFixed(-e)}</text>`;
-  s += `<text class="tick" x="${m.l + iw / 2}" y="${H - 4}" text-anchor="middle">Group score (log scale)</text>`;
-  s += `<text class="tick" transform="translate(10 ${m.t + ih / 2}) rotate(-90)" text-anchor="middle">${yName}</text>`;
-  [...S].sort((a, b) => b.size - a.size).forEach(d => {
-    s += `<circle${tip(`<b>Group #${d.rank}</b><br>${d.size} accounts · score ${d.score.toFixed(2)}<br><span class="m">${yName}: ${pct(d.y)}</span>`)} cx="${X(d.score)}" cy="${Y(d.y)}" r="${R(d.size)}" fill="${C.s1}" fill-opacity=".5" stroke="${C.surf}" stroke-width="1.5"/>`; });
-  svg(el, W, H, s);
-}
-
-/* ---------- network ---------- */
-let netIdx = 0;
-function drawNet() {
-  const el = $('c-net'), N = D.networks, tabs = $('net-tabs');
-  if (!N || !N.length) { tabs.innerHTML = ''; legend('net-legend', []); return ph(el); }
-  if (netIdx >= N.length) netIdx = 0;
-  tabs.innerHTML = N.map((n, i) => `<button class="${i === netIdx ? 'on' : ''}" data-i="${i}">Group #${n.rank} · ${n.size} accounts</button>`).join('');
-  tabs.querySelectorAll('button').forEach(b => b.onclick = () => { netIdx = +b.dataset.i; drawNet(); });
-  const net = N[netIdx], n = net.nodes.length;
-  let colorOf, items;
-  if (isLab()) { colorOf = d => d.labeled ? C.s2 : C.s1; items = [[C.s2, 'Labeled propaganda account', 1], [C.s1, 'Not labeled', 1]]; }
-  else if (isCat()) { const cnt = {}; net.nodes.forEach(d => { if (d.category) cnt[d.category] = (cnt[d.category] || 0) + 1; });
-    const top = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]).slice(0, 3), pal = [C.s1, C.s2, C.s3];
-    colorOf = d => top.includes(d.category) ? pal[top.indexOf(d.category)] : C.other;
-    items = top.map((c, i) => [pal[i], c, 1]); if (net.nodes.some(d => !top.includes(d.category))) items.push([C.other, 'Other roles', 1]); }
-  else { colorOf = () => C.s1; items = []; }
-  legend('net-legend', items);
-  const [W, H] = size(el);
-  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const P = net.nodes.map(() => ({ x: W / 2 + (rnd() - .5) * W * .6, y: H / 2 + (rnd() - .5) * H * .6, vx: 0, vy: 0 }));
-  const maxW = Math.max(...net.edges.map(e => e.w), 1e-9), k = Math.sqrt(W * H / Math.max(n, 1)) * .6;
-  for (let it = 0; it < 400; it++) { const cool = 1 - it / 400;
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const a = P[i], b = P[j], dx = a.x - b.x, dy = a.y - b.y, f = k * k / (dx * dx + dy * dy + .01) * .05;
-      a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f; }
-    for (const e of net.edges) { const a = P[e.s], b = P[e.t], dx = b.x - a.x, dy = b.y - a.y, d = Math.sqrt(dx * dx + dy * dy) + .01, f = (d - k) / d * .02 * (.4 + .6 * e.w / maxW);
-      a.vx += dx * f; a.vy += dy * f; b.vx -= dx * f; b.vy -= dy * f; }
-    for (const p of P) { p.vx += (W / 2 - p.x) * .004; p.vy += (H / 2 - p.y) * .004;
-      p.x += Math.max(-20, Math.min(20, p.vx)) * cool; p.y += Math.max(-20, Math.min(20, p.vy)) * cool; p.vx *= .5; p.vy *= .5; } }
-  const xs = P.map(p => p.x), ys = P.map(p => p.y), pad = 22, a0 = Math.min(...xs), a1 = Math.max(...xs), b0 = Math.min(...ys), b1 = Math.max(...ys);
-  const sc = Math.min((W - 2 * pad) / ((a1 - a0) || 1), (H - 2 * pad) / ((b1 - b0) || 1));
-  P.forEach(p => { p.x = W / 2 + (p.x - (a0 + a1) / 2) * sc; p.y = H / 2 + (p.y - (b0 + b1) / 2) * sc; });
-  const deg = new Array(n).fill(0); net.edges.forEach(e => { deg[e.s]++; deg[e.t]++; });
-  const kindName = { dup: 'same text', item: 'same link/tag', tgt: 'same reply targets', fast: 'same timing' };
-  let s = '';
-  for (const e of net.edges) s += `<line x1="${P[e.s].x}" y1="${P[e.s].y}" x2="${P[e.t].x}" y2="${P[e.t].y}" stroke="${C.muted}" stroke-opacity="${.12 + .5 * e.w / maxW}" stroke-width="${1 + 1.5 * e.w / maxW}"/>`;
-  net.nodes.forEach((d, i) => { const r = 6 + Math.min(8, Math.sqrt(deg[i]) * 1.2), kinds = {};
-    net.edges.forEach(e => { if (e.s === i || e.t === i) kinds[e.kind] = (kinds[e.kind] || 0) + 1; });
-    const top = Object.entries(kinds).sort((a, b) => b[1] - a[1]).map(([kk, c]) => `${kindName[kk]} ×${c}`).join(', ');
-    const who = isLab() ? (d.labeled ? 'labeled propaganda' : 'not labeled') : isCat() ? (d.category || 'unknown role') : '';
-    s += `<circle${tip(`<b>Account ${i + 1}</b>${who ? ' · ' + esc(who) : ''}<br>${deg[i]} links<br><span class="m">${top}</span>`)} cx="${P[i].x}" cy="${P[i].y}" r="${r}" fill="${colorOf(d)}" stroke="${C.surf}" stroke-width="2"/>`; });
-  svg(el, W, H, s);
-}
-
-function drawGroups() {
-  const el = $('c-groups'), G = D.groups;
-  if (!G || !G.length) return ph(el);
-  const kindName = { dup: 'text', item: 'item', tgt: 'reply', fast: 'fast' };
-  const truthCol = isLab() ? 'Labeled' : isCat() ? 'Main role' : null;
-  const truth = g => isLab() ? `${g.labeled} (${Math.round(g.labeled / g.size * 100)}%)` : isCat() ? `${esc(g.top_category || '—')} (${pct(g.category_share, 0)})` : '';
-  el.innerHTML = `<table class="groups"><tr><th>#</th><th style="text-align:right">Accounts</th>${truthCol ? `<th style="text-align:right">${truthCol}</th>` : ''}<th style="text-align:right">Score</th><th>Top shared traces (accounts sharing)</th></tr>` +
-    G.slice(0, 10).map(g => `<tr><td class="num">${g.rank}</td><td class="num">${g.size}</td>${truthCol ? `<td class="num">${truth(g)}</td>` : ''}<td class="num">${g.score.toFixed(2)}</td>
-      <td>${g.evidence.slice(0, 2).map(e => `<div><span class="kind">${kindName[e.kind] || e.kind}</span> ${esc(e.text.length > 90 ? e.text.slice(0, 89) + '…' : e.text)} <span style="color:var(--text-muted)">(${e.users})</span></div>`).join('')}</td></tr>`).join('') + `</table>`;
-}
-
-/* ---------- hero picture: scattered accounts, one coordinated group ---------- */
-function drawHero() {
-  const el = $('hero-net'), W = 560, H = 490, net = (D.networks || [])[0];
-  let seed = 11; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
-  const cx = 330, cy = 225, R = 120;
-  const bg = []; while (bg.length < 110) { const x = 14 + rnd() * (W - 28), y = 14 + rnd() * (H - 60);
-    if (Math.hypot(x - cx, y - cy) > R + 26) bg.push([x, y, 2.5 + rnd() * 3]); }
-  let nodes, edges;
-  if (net && net.nodes.length >= 4) { const keep = net.nodes.slice(0, 22).map(d => d.id), set = new Set(keep);
-    nodes = keep.map(() => ({ x: cx + (rnd() - .5) * R, y: cy + (rnd() - .5) * R }));
-    const idx = new Map(keep.map((id, i) => [id, i]));
-    edges = net.edges.filter(e => set.has(e.s) && set.has(e.t)).slice(0, 90).map(e => [idx.get(e.s), idx.get(e.t)]);
-    $('hero-note').textContent = `The highlighted group is group #1 from the ${D.name || key} data. Other dots are illustrative.`;
-  } else { nodes = Array.from({ length: 16 }, () => ({ x: cx + (rnd() - .5) * R, y: cy + (rnd() - .5) * R })); edges = [];
-    nodes.forEach((_, i) => { for (let j = i + 1; j < nodes.length; j++) if (rnd() < .3) edges.push([i, j]); });
-    $('hero-note').textContent = 'Illustration: one coordinated group among ordinary accounts.'; }
-  const n = nodes.length, k = R * 1.1 / Math.sqrt(n);
-  for (let it = 0; it < 250; it++) {
-    for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) { const a = nodes[i], b = nodes[j], dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy + .01, f = k * k / d2 * .1;
-      a.x += dx * f; a.y += dy * f; b.x -= dx * f; b.y -= dy * f; }
-    for (const [s, t] of edges) { const a = nodes[s], b = nodes[t], dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy) + .01, f = (d - k) / d * .05;
-      a.x += dx * f; a.y += dy * f; b.x -= dx * f; b.y -= dy * f; }
-    for (const p of nodes) { p.x += (cx - p.x) * .02; p.y += (cy - p.y) * .02; const d = Math.hypot(p.x - cx, p.y - cy);
-      if (d > R) { p.x = cx + (p.x - cx) * R / d; p.y = cy + (p.y - cy) * R / d; } }
+// A key is what members share: kind + value. Returns {label, url, text} for display.
+function keyInfo(k) {
+  if (k.kind === 'dup') return { label: 'same text', url: null, text: k.sample || k.key };
+  if (k.kind === 'tgt') {
+    const m = /:(at:\/\/.+)$/.exec(k.key), url = m ? postUrl(m[1]) : null;
+    return { label: 'replied to', url, text: m ? 'post ' + m[1].split('/').pop() + ' by ' + who(m[1].slice(5).split('/')[0]) : k.key };
   }
-  let s = '';
-  bg.forEach(([x, y, r]) => s += `<circle cx="${x}" cy="${y}" r="${r}" fill="${C.s1}" fill-opacity=".35"/>`);
-  nodes.forEach(p => s += `<circle cx="${p.x}" cy="${p.y}" r="5" fill="${C.s1}" fill-opacity=".35"/>`);
-  s += `<g class="flag">`;
-  for (const [a, b] of edges) s += `<line x1="${nodes[a].x}" y1="${nodes[a].y}" x2="${nodes[b].x}" y2="${nodes[b].y}" stroke="${C.s2}" stroke-opacity=".45" stroke-width="1.2"/>`;
-  nodes.forEach(p => s += `<circle cx="${p.x}" cy="${p.y}" r="6.5" fill="${C.s2}" stroke="${css('--bg')}" stroke-width="2"/>`);
-  s += `<circle cx="${cx}" cy="${cy}" r="${R + 22}" fill="none" stroke="${C.s2}" stroke-opacity=".5" stroke-dasharray="3 6"/>`;
-  s += `<text x="${cx}" y="${cy - R - 34}" text-anchor="middle" class="dlabel strong" style="fill:${C.s2}">${net ? net.size + ' accounts acting together' : 'Accounts acting together'}</text></g>`;
-  el.innerHTML = s;
-  const art = $('hero-art'); art.classList.remove('lit'); requestAnimationFrame(() => requestAnimationFrame(() => art.classList.add('lit')));
+  const v = k.key;
+  if (v.startsWith('url:')) return { label: 'link', url: 'https://' + v.slice(4), text: v.slice(4) };
+  if (v.startsWith('rt:')) {
+    const at = v.slice(3), did = at.slice(5).split('/')[0];
+    return { label: 'repost of', url: postUrl(at), text: 'post by ' + (U[did] ? who(did) : did) };
+  }
+  if (v.startsWith('#')) return { label: 'hashtag', url: D.platform === 'bluesky' ? `https://bsky.app/hashtag/${encodeURIComponent(v.slice(1))}`
+    : D.platform === 'x' ? `https://x.com/hashtag/${encodeURIComponent(v.slice(1))}` : null, text: v };
+  if (v.startsWith('@')) return { label: 'mention', url: profileUrl(v.slice(1)), text: v.startsWith('@did:') ? who(v.slice(1)) : v };
+  return { label: k.kind, url: null, text: v };
+}
+const keyHref = k => `#/${enc(name)}/k/${k.kind}/${enc(k.key)}`;
+const enc = encodeURIComponent;
+
+// ---------- data loading ----------
+// script tags, not fetch, so the page also works from file://; ?time skips the browser cache (monitor.py rewrites the files)
+function script(file) {
+  return new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = file + '?' + Date.now(); s.onload = ok; s.onerror = () => fail(file);
+    document.head.appendChild(s);
+  });
+}
+async function load(n) { if (!window.SITE?.[n]) await script(enc(n) + '.js'); return window.SITE[n]; }
+function index() {
+  U = {}; K = {};
+  for (const g of D.groups) {
+    for (const m of g.members) U[m.id] = { m, g };
+    for (const k of g.keys) (K[k.kind + '\u0000' + k.key] ||= []).push({ g, k });
+  }
 }
 
-/* ---------- wiring ---------- */
-function drawAll() { drawHero(); drawHeader(); drawMonthly(); drawBreakdown(); drawSchedule(); drawLift(); drawResults(); drawScatter(); drawNet(); drawGroups(); }
-function pick(k) { key = k; D = ALL[k] || {}; $('ds').value = k; netIdx = 0;
-  const u = new URL(location); u.searchParams.set('data', k); history.replaceState(null, '', u); drawAll(); }
-const keys = Object.keys(ALL);
-$('ds').innerHTML = keys.map(k => `<option value="${k}">${esc(ALL[k].name || k)}</option>`).join('');
-$('ds').onchange = e => pick(e.target.value);
-const T = $('tip');
-document.addEventListener('mousemove', e => { const h = e.target.closest('[data-tip]');
-  if (!h) { T.style.opacity = 0; return; } T.innerHTML = h.dataset.tip; T.style.opacity = 1;
-  const r = T.getBoundingClientRect(); T.style.left = Math.min(innerWidth - r.width - 8, e.clientX + 14) + 'px'; T.style.top = Math.min(innerHeight - r.height - 8, e.clientY + 14) + 'px'; });
-let rz; addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(drawAll, 150); });
-const navLinks = [...document.querySelectorAll('#nav a')];
-const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) navLinks.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + e.target.id)); }), { rootMargin: '-40% 0px -55% 0px' });
-document.querySelectorAll('section[id]').forEach(s => io.observe(s));
-pick(keys.includes(new URLSearchParams(location.search).get('data')) ? new URLSearchParams(location.search).get('data') : keys[0]);
+// ---------- layout (same as the project page: a page top, then sections with a heading column) ----------
+const NAMES = { bluesky: 'Bluesky, the last 24 hours of the live firehose', iowa: 'Bluesky, Iowa and election accounts, Oct 27 – Nov 10 2026',
+  x: 'X (Twitter), Russian IRA troll accounts, 2012–2018' };
+const block = (title, desc, body) => `<section class="block"><div class="side"><h2>${title}</h2>${desc ? `<p>${desc}</p>` : ''}</div><div>${body}</div></section>`;
+const crumb = (...links) => `<p class="crumb"><a href="#/${enc(name)}">All groups</a>${links.map(l => ' / ' + l).join('')}</p>`;
+const stats = items => `<div class="stats">${items.map(([v, l]) => `<div><b>${v}</b><span>${l}</span></div>`).join('')}</div>`;
+
+// ---------- views ----------
+function viewList() {
+  const kinds = [...new Set(D.groups.map(g => g.kind).filter(Boolean))];
+  const tags = [...new Set(D.groups.flatMap(g => g.tags))];
+  const sel = (id, label, vals) => vals.length ? `<select id="${id}"><option value="">${label}: all</option>${vals.map(v => `<option>${esc(v)}</option>`).join('')}</select>` : '';
+  $('app').innerHTML = `<div class="top"><p class="kicker">${esc(NAMES[name] || name)}</p>
+    <h1>Find accounts that act together.</h1>
+    <p class="lead">Each group is a set of accounts that share rare traces: the same text, links, reply targets and timing. Open a group to see the evidence, then check every post at its source.</p>
+    ${stats([[num(D.posts), 'posts by scored accounts'], [num(D.active_users), 'accounts scored'], [num(D.n_groups), 'groups found'],
+             [D.groups.length, 'groups shown'], [`${day(D.start)} – ${day(D.end)}`, 'time span']])}</div>
+    ${block('Groups', 'Ranked by shared content per member. Tags come from public account facts. Click a row to open the evidence.',
+      `<div class="row" style="margin-bottom:14px">${sel('fk', 'Kind', kinds)}${sel('ft', 'Tag', tags)}</div>
+      <div class="scroll"><table><thead><tr><th>#</th><th>kind / tags</th><th>accounts</th><th>score</th><th>schedule</th><th>top shared traces</th></tr></thead><tbody id="rows"></tbody></table></div>
+      <p class="muted" style="font-size:14px">Made ${esc(D.generated)} from <code>${esc(D.source)}</code>.</p>`)}`;
+  const draw = () => {
+    const fk = $('fk')?.value, ft = $('ft')?.value;
+    $('rows').innerHTML = D.groups.filter(g => (!fk || g.kind === fk) && (!ft || g.tags.includes(ft))).map(g => `
+      <tr class="click" data-g="${g.g}"><td class="n">${g.g}</td><td><span class="kind">${esc(g.kind)}</span><br>${tagPills(g.tags)}</td>
+      <td class="n">${g.size}</td><td class="n">${g.score.toFixed(2)}</td><td class="n">${g.sched_sim.toFixed(2)}</td>
+      <td>${g.keys.slice(0, 2).map(k => { const i = keyInfo(k); return `<div><span class="muted">${esc(i.label)} ×${k.users}:</span> ${esc(i.text.slice(0, 110))}</div>`; }).join('')}</td></tr>`).join('');
+  };
+  for (const id of ['fk', 'ft']) $(id)?.addEventListener('change', draw);
+  $('rows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) location.hash = `#/${enc(name)}/g/${tr.dataset.g}`; });
+  draw();
+}
+const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join(' ');
+
+function viewGroup(n) {
+  const g = D.groups.find(x => x.g === +n);
+  if (!g) return $('app').innerHTML = `<div class="top">${crumb()}<p class="lead">No such group.</p></div>`;
+  const shares = Object.entries(g.kind_shares).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
+  $('app').innerHTML = `<div class="top">${crumb()}<p class="kicker">${esc(g.kind || 'group')} · ${g.size} accounts · score ${g.score.toFixed(2)}</p>
+    <h1>Group ${g.g}</h1>
+    <p class="lead">${esc(g.why)}</p>
+    <div class="row" style="margin-bottom:22px">${tagPills(g.tags)}${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">topic: ${esc(shares)}</span>` : ''}</div>
+    <div class="btns"><span class="muted" style="font-size:15px">Export</span>
+      <button class="btn" data-x="members">Members CSV</button><button class="btn" data-x="evidence">Evidence CSV</button>
+      <button class="btn" data-x="graphml">Graph (GraphML)</button><button class="btn" data-x="json">Full JSON</button></div></div>
+    ${block('Evidence', 'Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used the trace. Click "pivot" to see other groups with it.',
+      `<div id="keys">${g.keys.slice(0, 60).map(keyBlock).join('')}</div>${g.keys.length > 60 ? `<p class="muted">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}`)}
+    ${block('Timeline', 'One row per account, one dot per post. Amber posts share a trace with another member. Vertical lines of dots are bursts.', '<div id="tl"></div>')}
+    ${block('Weekly schedule', 'Posts by weekday and hour, in UTC (X data: hours as stored). People sleep, so a real person has quiet hours.', '<div id="heat"></div><p id="tz" style="margin-top:14px"></p>')}
+    ${block('Strongest links', 'Account pairs with the most shared traces. Values are weighted, so rare traces count more.', `<div class="scroll">${pairTable(g.edges.slice(0, 15))}</div>`)}
+    ${block('Members', 'Public account facts. "Gone" accounts are deleted, deactivated or taken down.', `<div class="scroll">${memberTable(g)}</div>`)}`;
+  document.querySelectorAll('[data-x]').forEach(b => b.onclick = () => exportGroup(g, b.dataset.x));
+  $('tl').innerHTML = timeline(g);
+  heat(g.schedule);
+}
+
+function keyBlock(k) {
+  const i = keyInfo(k), others = (K[k.kind + '\u0000' + k.key] || []).length - 1;
+  return `<div class="key"><div class="row"><span class="kind"><b>${esc(i.label)}</b></span><span class="pill">${k.users} members</span>
+      <span class="pill">${k.fan} in all data</span>${others > 0 ? `<a class="pill" href="${keyHref(k)}">also in ${others} other group${others > 1 ? 's' : ''}</a>` : `<a class="pill" href="${keyHref(k)}">pivot</a>`}
+      <span class="muted" style="font-size:14px">${when(k.t0)} → ${when(k.t1)}</span></div>
+    <div class="txt">${ext(i.url, esc(i.text.slice(0, 400)))}</div>
+    ${k.posts ? `<details><summary>${k.posts.length} posts</summary><div class="posts">${k.posts.map(postLine).join('')}</div></details>` : ''}</div>`;
+}
+function postLine(p) {
+  const url = postUrl(p.id, p.u);
+  return `<div><a href="#/${enc(name)}/u/${enc(p.u)}">${esc(who(p.u))}</a> <span class="muted">${when(p.ts)}</span>
+    ${url ? ext(url, 'open') + ' · ' + ext(archive(url), 'archive') : `<span class="mono">${esc(p.id)}</span>`}
+    ${p.text ? `<br><span>${esc(p.text.slice(0, 240))}</span>` : ''}</div>`;
+}
+function pairTable(edges, self) {
+  if (!edges.length) return '<p class="muted">None.</p>';
+  const acc = u => `<td><a href="#/${enc(name)}/u/${enc(u)}">${esc(who(u))}</a></td>`;
+  return `<table><tr>${self ? '<th>partner</th>' : '<th>account</th><th>account</th>'}<th>text</th><th>items</th><th>replies</th><th>60 s</th><th>sched</th></tr>${edges.map(e => `
+    <tr>${self ? acc(e.u === self ? e.v : e.u) : acc(e.u) + acc(e.v)}
+    <td class="n">${e.dup.toFixed(1)}</td><td class="n">${e.item.toFixed(1)}</td><td class="n">${e.tgt.toFixed(1)}</td><td class="n">${e.fast.toFixed(1)}</td><td class="n">${e.sched.toFixed(2)}</td></tr>`).join('')}</table>`;
+}
+function memberTable(g) {
+  const bs = D.platform === 'bluesky', truth = g.members.some(m => 'label' in m || 'category' in m);
+  return `<table><tr><th>account</th>${bs ? '<th>name / bio</th><th>created</th><th>followers</th><th>posts (all)</th>' : ''}
+    <th>posts here</th><th>first → last here</th>${truth ? '<th>known</th>' : ''}<th></th></tr>${g.members.map(m => `
+    <tr><td><a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))}</a><br><span class="mono muted">${esc(m.id)}</span></td>
+    ${bs ? (m.gone ? '<td colspan="4"><span class="pill bad">gone from public API</span></td>' :
+      `<td><b>${esc(m.name)}</b><br><span class="muted">${esc((m.bio || '').slice(0, 120))}</span></td><td>${esc(m.created)}</td><td class="n">${num(m.followers)}</td><td class="n">${num(m.total_posts)}</td>`) : ''}
+    <td class="n">${m.posts}</td><td class="muted">${day(m.first)} → ${day(m.last)}</td>
+    ${truth ? `<td>${esc(m.category ?? (m.label === true ? 'labeled' : m.label === false ? '-' : ''))}</td>` : ''}
+    <td>${ext(profileUrl(m.id), 'profile')}</td></tr>`).join('')}</table>`;
+}
+
+function timeline(g) {
+  if (!g.timeline.length) return '<p class="muted">No posts.</p>';
+  const first = {};
+  for (const [u, t, s] of g.timeline) if (s && (first[u] === undefined || t < first[u])) first[u] = t;
+  const rows = [...new Set(g.timeline.map(x => x[0]))].sort((a, b) => (first[a] ?? 9e12) - (first[b] ?? 9e12));
+  const shown = rows.slice(0, 80), y = Object.fromEntries(shown.map((u, i) => [u, i]));
+  const ts = g.timeline.map(x => x[1]), t0 = Math.min(...ts), t1 = Math.max(...ts), W = 1000, L = 4, R = 4, rh = 7;
+  const H = shown.length * rh + 24, X = t => L + (t - t0) / Math.max(t1 - t0, 1) * (W - L - R);
+  const dots = g.timeline.filter(x => x[0] in y).sort((a, b) => a[2] - b[2]).map(([u, t, s]) =>
+    `<circle cx="${X(t).toFixed(1)}" cy="${y[u] * rh + 4}" r="${s ? 2.4 : 1.6}" fill="${s ? 'var(--series-2)' : 'var(--other)'}"><title>${esc(who(g.members[u].id))} ${when(t)}</title></circle>`).join('');
+  const ticks = [0, .25, .5, .75, 1].map(f => { const t = t0 + f * (t1 - t0), x = X(t);
+    return `<line x1="${x}" x2="${x}" y1="0" y2="${H - 18}" stroke="var(--grid)"/><text x="${x}" y="${H - 4}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${when(t).slice(5, 16)}</text>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${ticks}${dots}</svg>` +
+    (rows.length > shown.length ? `<p class="muted">First ${shown.length} of ${rows.length} accounts shown.</p>` : '');
+}
+
+function heat(h) {
+  const max = Math.max(...h, 1), days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  let s = '<div class="l"></div>' + Array.from({ length: 24 }, (_, i) => `<div class="l">${i % 3 ? '' : i}</div>`).join('');
+  days.forEach((d, di) => { s += `<div class="l">${d}</div>`; for (let i = 0; i < 24; i++) { const v = h[di * 24 + i];
+    s += `<div title="${d} ${i}:00 UTC: ${v} posts" style="background:rgba(144,133,233,${v ? .12 + .88 * v / max : 0.05})"></div>`; } });
+  $('heat').innerHTML = `<div class="heat">${s}</div>`;
+  // quietest 6 hours of the day; if that is night (01–07 local), local time = UTC + (4 - centre)
+  const byHour = Array.from({ length: 24 }, (_, i) => days.reduce((a, _, d) => a + h[d * 24 + i], 0));
+  if (D.end - D.start < 3 * 86400) return $('tz').textContent = 'The data covers less than 3 days, so the quiet hours do not show a time zone.';
+  if (byHour.reduce((a, b) => a + b, 0) < 50) return $('tz').textContent = 'Too few posts to guess a time zone.';
+  let best = 0, bv = Infinity;
+  for (let i = 0; i < 24; i++) { const v = [0, 1, 2, 3, 4, 5].reduce((a, j) => a + byHour[(i + j) % 24], 0); if (v < bv) { bv = v; best = i; } }
+  let off = ((4 - (best + 3)) % 24 + 24) % 24; if (off > 12) off -= 24;
+  const pad = x => String(x).padStart(2, '0');
+  $('tz').textContent = `Quietest 6 hours: ${pad(best)}:00–${pad((best + 6) % 24)}:00 UTC. If that is night, the accounts keep the hours of about UTC${off >= 0 ? '+' : '−'}${Math.abs(off)}. This is a hint, not proof.`;
+}
+
+function viewUser(id) {
+  const e = U[id];
+  if (!e) return $('app').innerHTML = `<div class="top">${crumb()}<p class="lead">${esc(id)} is not in a shown group.</p></div>`;
+  const { m, g } = e, partners = g.edges.filter(x => x.u === id || x.v === id).slice(0, 20);
+  const posts = g.keys.flatMap(k => (k.posts || []).filter(p => p.u === id).map(p => ({ p, k })));
+  $('app').innerHTML = `<div class="top">${crumb(`<a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a>`)}<p class="kicker mono">${esc(id)}</p>
+    <h1>${esc(who(id))}</h1>
+    ${m.gone ? '<p class="lead"><span class="pill bad">gone from public API</span></p>' : m.name || m.bio ? `<p class="lead"><b>${esc(m.name)}</b> ${esc(m.bio)}</p>` : ''}
+    <div class="btns">${profileUrl(id) ? `<a class="btn primary" href="${esc(profileUrl(id))}" target="_blank" rel="noopener noreferrer">Open profile</a>
+      <a class="btn" href="${esc(archive(profileUrl(id)))}" target="_blank" rel="noopener noreferrer">Archive</a>` : ''}
+      ${D.platform === 'bluesky' ? `<a class="btn" href="https://plc.directory/${esc(id)}/log/audit" target="_blank" rel="noopener noreferrer">Handle history</a>` : ''}</div>
+    ${stats([...(m.created ? [[esc(m.created), 'created'], [num(m.followers), 'followers']] : []), [m.posts, 'posts in this data'],
+             [`${day(m.first)} → ${day(m.last)}`, 'active here'], [`<a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a>`, `${g.size} accounts`]])}</div>
+    ${block('Closest partners', 'Members of the same group with the most shared traces with this account.', `<div class="scroll">${pairTable(partners, id)}</div>`)}
+    ${block('Posts that share a trace', 'Only posts behind the top traces of the group.',
+      posts.length ? posts.map(({ p, k }) => `<div class="key"><span class="kind"><b>${esc(keyInfo(k).label)}</b></span> <a href="${keyHref(k)}">${esc(keyInfo(k).text.slice(0, 80))}</a><div class="posts">${postLine(p)}</div></div>`).join('') : '<p class="muted">None in the top traces.</p>')}`;
+}
+
+function viewKey(kind, key) {
+  const hits = K[kind + '\u0000' + key] || [];
+  if (!hits.length) return $('app').innerHTML = `<div class="top">${crumb()}<p class="lead">No shown group shares this trace.</p></div>`;
+  const i = keyInfo(hits[0].k);
+  $('app').innerHTML = `<div class="top">${crumb()}<p class="kicker">Shared trace: ${esc(i.label)}</p>
+    <h1 style="font-size:clamp(28px,3.4vw,42px)">${ext(i.url, esc(i.text.slice(0, 300)))}</h1>
+    ${stats([[hits[0].k.fan, 'scored accounts used it'], [hits.length, `shown group${hits.length > 1 ? 's' : ''} share it`]])}</div>
+    ${block('Groups', 'Every shown group whose members share this trace.', `<div class="scroll"><table><tr><th>group</th><th>kind / tags</th><th>members who used it</th><th>first → last</th></tr>${hits.map(({ g, k }) => `
+      <tr class="click" onclick="location.hash='#/${enc(name)}/g/${g.g}'"><td class="n">${g.g}</td><td><span class="kind">${esc(g.kind)}</span> ${tagPills(g.tags)}</td>
+      <td class="n">${k.users} of ${g.size}</td><td class="muted">${when(k.t0)} → ${when(k.t1)}</td></tr>`).join('')}</table></div>`)}
+    ${hits.some(h => h.k.posts) ? block('Posts', 'The posts behind this trace, per group.', hits.filter(h => h.k.posts).map(({ g, k }) =>
+      `<div class="key"><h3>Group ${g.g}</h3><div class="posts">${k.posts.map(postLine).join('')}</div></div>`).join('')) : ''}`;
+}
+
+function viewSearch(s) {
+  s = s.trim().toLowerCase().replace(/^@/, '');
+  if (s.length < 2) return;
+  const acc = Object.values(U).filter(({ m }) => [m.id, m.handle, m.name].some(v => v && String(v).toLowerCase().includes(s))).slice(0, 30);
+  const keys = Object.values(K).map(h => h[0]).filter(({ k }) => [k.key, k.sample, keyInfo(k).text].some(v => v && v.toLowerCase().includes(s))).slice(0, 50);
+  $('app').innerHTML = `<div class="top">${crumb()}<p class="kicker">Search</p><h1>${esc(s)}</h1>
+    <p class="lead">Search covers the accounts and shared traces of the shown groups only.</p></div>
+    ${block(`Accounts (${acc.length})`, 'Handle, DID or display name.', `<div class="hits">${acc.map(({ m, g }) => `<a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))} <span class="muted">${esc(m.name || '')} · group ${g.g}</span></a>`).join('') || '<p class="muted">None.</p>'}</div>`)}
+    ${block(`Shared traces (${keys.length})`, 'Links, hashtags, mentions, reposts and same texts.', `<div class="hits">${keys.map(({ k }) => { const i = keyInfo(k);
+      return `<a href="${keyHref(k)}"><span class="kind">${esc(i.label)}</span> ${esc(i.text.slice(0, 120))} <span class="muted">· ${(K[k.kind + '\u0000' + k.key]).length} group(s)</span></a>`; }).join('') || '<p class="muted">None.</p>'}</div>`)}`;
+}
+
+// ---------- exports ----------
+function download(file, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = file; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const csv = rows => rows.map(r => r.map(v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(',')).join('\n');
+const xml = s => esc(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+function exportGroup(g, what) {
+  const base = `${name}-group-${g.g}`;
+  if (what === 'members') download(base + '-members.csv', csv([['id', 'handle', 'name', 'created', 'followers', 'total_posts', 'posts_here', 'first_here', 'last_here', 'gone', 'label', 'category', 'profile_url'],
+    ...g.members.map(m => [m.id, m.handle, m.name, m.created, m.followers, m.total_posts, m.posts, when(m.first), when(m.last), m.gone ? 1 : '', m.label, m.category, profileUrl(m.id)])]), 'text/csv');
+  if (what === 'evidence') download(base + '-evidence.csv', csv([['kind', 'trace', 'members', 'in_all_data', 'account', 'post_id', 'time_utc', 'post_url', 'text'],
+    ...g.keys.flatMap(k => (k.posts || [{}]).map(p => [keyInfo(k).label, k.kind === 'dup' ? k.sample : k.key, k.users, k.fan, p.u, p.id, p.ts && when(p.ts), p.id && postUrl(p.id, p.u), p.text]))]), 'text/csv');
+  if (what === 'graphml') {
+    const attrs = ['w', 'dup', 'item', 'tgt', 'fast', 'sched'];
+    download(base + '.graphml', `<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+<key id="label" for="node" attr.name="label" attr.type="string"/><key id="handle" for="node" attr.name="handle" attr.type="string"/>
+<key id="known" for="node" attr.name="known" attr.type="string"/>
+${attrs.map(a => `<key id="${a}" for="edge" attr.name="${a}" attr.type="double"/>`).join('')}
+<graph id="${xml(base)}" edgedefault="undirected">
+${g.members.map(m => `<node id="${xml(m.id)}"><data key="label">${xml(who(m.id))}</data><data key="handle">${xml(m.handle || '')}</data><data key="known">${xml(m.category ?? m.label ?? '')}</data></node>`).join('\n')}
+${g.edges.map(e => `<edge source="${xml(e.u)}" target="${xml(e.v)}">${attrs.map(a => `<data key="${a}">${e[a]}</data>`).join('')}</edge>`).join('\n')}
+</graph></graphml>`, 'application/xml');
+  }
+  if (what === 'json') download(base + '.json', JSON.stringify({ dataset: D.name, source: D.source, generated: D.generated, platform: D.platform,
+    method: 'Accounts are linked by rare shared traces (same text, links, hashtags, mentions, reposts, reply targets, posts within 60 s), weighted by weekly schedule similarity, then grouped with Leiden clustering. It flags behavior, not opinions.',
+    group: g }, null, 1), 'application/json');
+}
+
+// ---------- routing ----------
+async function route() {
+  if (!window.DATASETS) await script('datasets.js').catch(() => {});
+  const list = window.DATASETS || [];
+  if (!list.length) return $('app').innerHTML = '<div class="top"><p class="lead">No data. Run <code>uv run osint_site.py bluesky "data/live/*.parquet" 3</code>.</p></div>';
+  const [, ds, view, a, ...b] = location.hash.split('/');
+  const want = ds ? decodeURIComponent(ds) : list[0];
+  if (want !== name) {
+    D = await load(want); name = want; index();
+    $('ds').innerHTML = list.map(n => `<option ${n === name ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  }
+  scrollTo(0, 0);
+  if (view !== 's') $('q').value = '';
+  if (view === 'g') viewGroup(a);
+  else if (view === 'u') viewUser(decodeURIComponent(a));
+  else if (view === 'k') viewKey(a, decodeURIComponent(b.join('/')));
+  else if (view === 's') { $('q').value = decodeURIComponent(a); viewSearch(decodeURIComponent(a)); }
+  else viewList();
+}
+$('ds').onchange = () => location.hash = '#/' + enc($('ds').value);
+$('q').onkeydown = e => { if (e.key === 'Enter' && $('q').value.trim()) location.hash = `#/${enc(name)}/s/${enc($('q').value.trim())}`; };
+// the project page exists only on the public site (docs/); hide its links elsewhere
+fetch('about.html', { method: 'HEAD' }).then(r => { if (!r.ok) throw 0; }).catch(() => ['about', 'about2'].forEach(id => $(id)?.remove()));
+addEventListener('hashchange', route);
+route().catch(e => $('app').textContent = 'Could not load the data: ' + e);
 </script>
 </body>
 </html>

@@ -2,28 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "osint-site",
+      "name": "website",
       "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "8765",
-        "-d",
-        "data/site"
-      ],
+      "runtimeArgs": ["-m", "http.server", "8765", "-d", "docs"],
       "port": 8765
-    },
-    {
-      "name": "docs-site",
-      "runtimeExecutable": "python3",
-      "runtimeArgs": [
-        "-m",
-        "http.server",
-        "8766",
-        "-d",
-        "docs"
-      ],
-      "port": 8766
     }
   ]
 }
