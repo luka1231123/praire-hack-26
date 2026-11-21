@@ -133,6 +133,7 @@ python3 -m http.server 8765 -d data/site                   # open http://localho
 ```
 
 It writes to `data/site/` (not in git), because it holds real account IDs. The page itself is `osint/index.html`.
+The public website has a fixed snapshot in `docs/osint/` (made 2026-11-21). To update it, run `cp data/site/* docs/osint/`.
 It flags behavior, not opinions: a person checks the posts and decides.
 
 ## Website

@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>Behind the Accounts: investigator</title>
+<style>
+:root { color-scheme: dark; --bg: #121211; --s1: #1a1a19; --s2: #222220; --line: #34332f; --grid: #2b2b28;
+  --t1: #f0efec; --t2: #c3c2b7; --t3: #8f8e87; --blue: #3987e5; --accent: #d95926; --green: #199e70; --warn: #e8b45a; }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--t1); font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+a { color: var(--t1); text-underline-offset: 3px; text-decoration-color: var(--t3); }
+a:hover { text-decoration-color: var(--accent); }
+.wrap { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+header { position: sticky; top: 0; z-index: 5; background: rgba(18,18,17,.92); backdrop-filter: blur(10px); border-bottom: 1px solid var(--line); }
+header .wrap { display: flex; align-items: center; gap: 16px; height: 58px; }
+.brand { font-weight: 750; text-decoration: none; white-space: nowrap; } .brand span { color: var(--accent); }
+select, input, button { background: var(--s2); color: var(--t1); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; font: inherit; }
+button { cursor: pointer; } button:hover { border-color: var(--t3); }
+#q { flex: 1; min-width: 120px; max-width: 520px; }
+.notice { font-size: 13px; color: var(--warn); border-bottom: 1px solid var(--line); padding: 8px 0; }
+main { padding: 24px 0 80px; }
+h1 { font-size: 28px; margin: 0 0 6px; letter-spacing: -.01em; } h2 { font-size: 18px; margin: 0 0 4px; }
+.sub { color: var(--t3); font-size: 13px; margin: 0 0 12px; }
+.why { font-size: 16px; color: var(--t2); max-width: 900px; margin: 8px 0 16px; }
+.panel { background: var(--s1); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 16px; }
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.grid2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .grid2 { grid-template-columns: 1fr; } }
+.pill { font-size: 12px; font-weight: 650; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); color: var(--t2); white-space: nowrap; }
+.pill.bad { color: var(--accent); border-color: #5c3322; } .pill.ok { color: var(--green); border-color: #1f4a3a; }
+.kind { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--t3); }
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; color: var(--t3); font-weight: 600; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+td { padding: 7px 8px; border-bottom: 1px solid var(--grid); color: var(--t2); vertical-align: top; }
+td.n { text-align: right; font-variant-numeric: tabular-nums; color: var(--t1); white-space: nowrap; }
+tr.click { cursor: pointer; } tr.click:hover td { background: var(--s2); }
+.scroll { overflow-x: auto; }
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; word-break: break-all; }
+.muted { color: var(--t3); }
+.key { border-top: 1px solid var(--grid); padding: 10px 0; }
+.key:first-child { border-top: 0; }
+.key .txt { color: var(--t1); white-space: pre-wrap; word-break: break-word; }
+.posts { margin: 8px 0 0 14px; font-size: 13px; }
+.posts div { padding: 3px 0; color: var(--t2); word-break: break-word; }
+details summary { cursor: pointer; color: var(--t3); font-size: 13px; margin-top: 4px; }
+.heat { display: grid; grid-template-columns: 34px repeat(24, 1fr); gap: 2px; font-size: 10px; color: var(--t3); }
+.heat div { height: 16px; border-radius: 2px; }
+.heat .l { background: none; height: auto; line-height: 16px; }
+svg text { fill: var(--t3); font-size: 11px; }
+.stats { display: flex; gap: 32px; flex-wrap: wrap; margin: 8px 0 20px; }
+.stats b { display: block; font-size: 22px; }
+.stats span { color: var(--t3); font-size: 12px; }
+.hits a { display: block; padding: 6px 0; border-bottom: 1px solid var(--grid); text-decoration: none; }
+.hits a:hover { color: var(--accent); }
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <a class="brand" href="#">Behind the <span>Accounts</span></a>
+  <select id="ds" aria-label="Dataset"></select>
+  <a id="home" href="../" style="white-space:nowrap">Project site</a>
+  <input id="q" type="search" placeholder="Search a handle, DID, link, #hashtag or text" aria-label="Search">
+</div></header>
+<div class="notice"><div class="wrap">This tool flags coordinated behavior, not opinions. A group can be a real community. Open each post at its source and decide yourself.</div></div>
+<main class="wrap" id="app">Loading…</main>
+<script>
+'use strict';
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const ext = (url, text) => url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer">${text}</a>` : text;
+const day = t => new Date(t * 1000).toISOString().slice(0, 10);
+const when = t => new Date(t * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+const num = n => (n ?? 0).toLocaleString('en-US');
+let D = null, name = null, U = {}, K = {};   // dataset, its name, account index, key index
+
+// ---------- links to the source platform ----------
+function postUrl(id, user) {
+  if (D.platform === 'bluesky') {
+    const m = /^at:\/\/([^/]+)\/([^/]+)\/([^/]+)$/.exec(id || '');
+    if (!m) return null;
+    return m[2] === 'app.bsky.feed.post' ? `https://bsky.app/profile/${m[1]}/post/${m[3]}` : `https://bsky.app/profile/${m[1]}`;
+  }
+  if (D.platform === 'x') return `https://x.com/${encodeURIComponent(user)}/status/${encodeURIComponent(id)}`;
+  return null;
+}
+function profileUrl(u) {
+  if (D.platform === 'bluesky') return `https://bsky.app/profile/${u}`;
+  if (D.platform === 'x') return `https://x.com/${encodeURIComponent(u)}`;
+  return null;
+}
+const archive = url => url ? `https://web.archive.org/web/*/${url}` : null;
+const who = u => { const m = U[u]?.m; return m?.handle ? '@' + m.handle : (D.platform === 'x' ? '@' + u : u.slice(0, 18) + (u.length > 18 ? '…' : '')); };
+
+// A key is what members share: kind + value. Returns {label, url, text} for display.
+function keyInfo(k) {
+  if (k.kind === 'dup') return { label: 'same text', url: null, text: k.sample || k.key };
+  if (k.kind === 'tgt') {
+    const m = /:(at:\/\/.+)$/.exec(k.key), url = m ? postUrl(m[1]) : null;
+    return { label: 'replied to', url, text: m ? 'post ' + m[1].split('/').pop() + ' by ' + who(m[1].slice(5).split('/')[0]) : k.key };
+  }
+  const v = k.key;
+  if (v.startsWith('url:')) return { label: 'link', url: 'https://' + v.slice(4), text: v.slice(4) };
+  if (v.startsWith('rt:')) {
+    const at = v.slice(3), did = at.slice(5).split('/')[0];
+    return { label: 'repost of', url: postUrl(at), text: 'post by ' + (U[did] ? who(did) : did) };
+  }
+  if (v.startsWith('#')) return { label: 'hashtag', url: D.platform === 'bluesky' ? `https://bsky.app/hashtag/${encodeURIComponent(v.slice(1))}`
+    : D.platform === 'x' ? `https://x.com/hashtag/${encodeURIComponent(v.slice(1))}` : null, text: v };
+  if (v.startsWith('@')) return { label: 'mention', url: profileUrl(v.slice(1)), text: v.startsWith('@did:') ? who(v.slice(1)) : v };
+  return { label: k.kind, url: null, text: v };
+}
+const keyHref = k => `#/${enc(name)}/k/${k.kind}/${enc(k.key)}`;
+const enc = encodeURIComponent;
+
+// ---------- data loading ----------
+// script tags, not fetch, so the page also works from file://; ?time skips the browser cache (monitor.py rewrites the files)
+function script(file) {
+  return new Promise((ok, fail) => {
+    const s = document.createElement('script');
+    s.src = file + '?' + Date.now(); s.onload = ok; s.onerror = () => fail(file);
+    document.head.appendChild(s);
+  });
+}
+async function load(n) { if (!window.SITE?.[n]) await script(enc(n) + '.js'); return window.SITE[n]; }
+function index() {
+  U = {}; K = {};
+  for (const g of D.groups) {
+    for (const m of g.members) U[m.id] = { m, g };
+    for (const k of g.keys) (K[k.kind + '\u0000' + k.key] ||= []).push({ g, k });
+  }
+}
+
+// ---------- views ----------
+function viewList() {
+  const kinds = [...new Set(D.groups.map(g => g.kind).filter(Boolean))];
+  const tags = [...new Set(D.groups.flatMap(g => g.tags))];
+  const sel = (id, label, vals) => vals.length ? `<select id="${id}"><option value="">${label}: all</option>${vals.map(v => `<option>${esc(v)}</option>`).join('')}</select>` : '';
+  $('app').innerHTML = `<h1>${esc(D.name)}</h1>
+    <p class="sub">Source ${esc(D.source)}. Made ${esc(D.generated)}.</p>
+    <div class="stats"><div><b>${num(D.posts)}</b><span>posts by scored accounts</span></div><div><b>${num(D.active_users)}</b><span>accounts scored</span></div>
+      <div><b>${num(D.n_groups)}</b><span>groups found</span></div><div><b>${D.groups.length}</b><span>groups shown</span></div>
+      <div><b>${day(D.start)} – ${day(D.end)}</b><span>time span</span></div></div>
+    <div class="row" style="margin-bottom:12px">${sel('fk', 'Kind', kinds)}${sel('ft', 'Tag', tags)}</div>
+    <div class="panel scroll"><table><thead><tr><th>#</th><th>kind / tags</th><th>accounts</th><th>score</th><th>schedule</th><th>top shared traces</th></tr></thead><tbody id="rows"></tbody></table></div>`;
+  const draw = () => {
+    const fk = $('fk')?.value, ft = $('ft')?.value;
+    $('rows').innerHTML = D.groups.filter(g => (!fk || g.kind === fk) && (!ft || g.tags.includes(ft))).map(g => `
+      <tr class="click" data-g="${g.g}"><td class="n">${g.g}</td><td><span class="kind">${esc(g.kind)}</span><br>${tagPills(g.tags)}</td>
+      <td class="n">${g.size}</td><td class="n">${g.score.toFixed(2)}</td><td class="n">${g.sched_sim.toFixed(2)}</td>
+      <td>${g.keys.slice(0, 2).map(k => { const i = keyInfo(k); return `<div><span class="muted">${esc(i.label)} ×${k.users}:</span> ${esc(i.text.slice(0, 110))}</div>`; }).join('')}</td></tr>`).join('');
+  };
+  for (const id of ['fk', 'ft']) $(id)?.addEventListener('change', draw);
+  $('rows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) location.hash = `#/${enc(name)}/g/${tr.dataset.g}`; });
+  draw();
+}
+const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join(' ');
+
+function viewGroup(n) {
+  const g = D.groups.find(x => x.g === +n);
+  if (!g) return $('app').innerHTML = 'No such group.';
+  const shares = Object.entries(g.kind_shares).map(([k, v]) => `${k} ${Math.round(v * 100)}%`).join(', ');
+  $('app').innerHTML = `<p class="sub"><a href="#/${enc(name)}">All groups</a></p>
+    <h1>Group ${g.g} <span class="kind">${esc(g.kind)}</span></h1>
+    <div class="row">${tagPills(g.tags)}<span class="pill">${g.size} accounts</span><span class="pill">score ${g.score.toFixed(2)}</span>
+      ${shares ? `<span class="pill" title="Share of sampled posts closest to each topic">${esc(shares)}</span>` : ''}</div>
+    <p class="why">${esc(g.why)}</p>
+    <div class="row" style="margin-bottom:16px"><span class="muted">Export:</span>
+      <button data-x="members">Members CSV</button><button data-x="evidence">Evidence CSV</button>
+      <button data-x="graphml">Graph (GraphML)</button><button data-x="json">Full JSON</button></div>
+    <div class="panel"><h2>Evidence</h2><p class="sub">Traces shared by 2 or more members, most shared first. "In all data" counts every scored account that used it.</p>
+      <div id="keys">${g.keys.slice(0, 60).map(keyBlock).join('')}</div>
+      ${g.keys.length > 60 ? `<p class="sub">${g.keys.length - 60} more traces are in the JSON export.</p>` : ''}</div>
+    <div class="panel"><h2>Timeline</h2><p class="sub">One row per account, one dot per post. Orange posts share a trace with another member. Vertical lines of dots are bursts.</p><div id="tl"></div></div>
+    <div class="grid2"><div class="panel"><h2>Weekly schedule</h2><p class="sub">Posts by weekday and hour, UTC (X data: hours as stored).</p><div id="heat"></div><p class="sub" id="tz" style="margin-top:10px"></p></div>
+      <div class="panel"><h2>Strongest links</h2><p class="sub">Account pairs with the most shared traces. Values are weighted: rare traces count more.</p><div class="scroll">${pairTable(g.edges.slice(0, 15))}</div></div></div>
+    <div class="panel scroll"><h2>Members</h2>${memberTable(g)}</div>`;
+  document.querySelectorAll('[data-x]').forEach(b => b.onclick = () => exportGroup(g, b.dataset.x));
+  $('tl').innerHTML = timeline(g);
+  heat(g.schedule);
+}
+
+function keyBlock(k) {
+  const i = keyInfo(k), others = (K[k.kind + '\u0000' + k.key] || []).length - 1;
+  return `<div class="key"><div class="row"><span class="kind">${esc(i.label)}</span><span class="pill">${k.users} members</span>
+      <span class="pill">${k.fan} in all data</span>${others > 0 ? `<a class="pill" href="${keyHref(k)}">also in ${others} other group${others > 1 ? 's' : ''}</a>` : `<a class="pill" href="${keyHref(k)}">pivot</a>`}
+      <span class="muted">${when(k.t0)} → ${when(k.t1)}</span></div>
+    <div class="txt">${ext(i.url, esc(i.text.slice(0, 400)))}</div>
+    ${k.posts ? `<details><summary>${k.posts.length} posts</summary><div class="posts">${k.posts.map(postLine).join('')}</div></details>` : ''}</div>`;
+}
+function postLine(p) {
+  const url = postUrl(p.id, p.u);
+  return `<div><a href="#/${enc(name)}/u/${enc(p.u)}">${esc(who(p.u))}</a> <span class="muted">${when(p.ts)}</span>
+    ${url ? ext(url, 'open') + ' · ' + ext(archive(url), 'archive') : `<span class="mono">${esc(p.id)}</span>`}
+    ${p.text ? `<br><span>${esc(p.text.slice(0, 240))}</span>` : ''}</div>`;
+}
+function pairTable(edges, self) {
+  if (!edges.length) return '<p class="sub">None.</p>';
+  const acc = u => `<td><a href="#/${enc(name)}/u/${enc(u)}">${esc(who(u))}</a></td>`;
+  return `<table><tr>${self ? '<th>partner</th>' : '<th>account</th><th>account</th>'}<th>text</th><th>items</th><th>replies</th><th>60 s</th><th>sched</th></tr>${edges.map(e => `
+    <tr>${self ? acc(e.u === self ? e.v : e.u) : acc(e.u) + acc(e.v)}
+    <td class="n">${e.dup.toFixed(1)}</td><td class="n">${e.item.toFixed(1)}</td><td class="n">${e.tgt.toFixed(1)}</td><td class="n">${e.fast.toFixed(1)}</td><td class="n">${e.sched.toFixed(2)}</td></tr>`).join('')}</table>`;
+}
+function memberTable(g) {
+  const bs = D.platform === 'bluesky', truth = g.members.some(m => 'label' in m || 'category' in m);
+  return `<table><tr><th>account</th>${bs ? '<th>name / bio</th><th>created</th><th>followers</th><th>posts (all)</th>' : ''}
+    <th>posts here</th><th>first → last here</th>${truth ? '<th>known</th>' : ''}<th></th></tr>${g.members.map(m => `
+    <tr><td><a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))}</a><br><span class="mono muted">${esc(m.id)}</span></td>
+    ${bs ? (m.gone ? '<td colspan="4"><span class="pill bad">gone from public API</span></td>' :
+      `<td><b>${esc(m.name)}</b><br><span class="muted">${esc((m.bio || '').slice(0, 120))}</span></td><td>${esc(m.created)}</td><td class="n">${num(m.followers)}</td><td class="n">${num(m.total_posts)}</td>`) : ''}
+    <td class="n">${m.posts}</td><td class="muted">${day(m.first)} → ${day(m.last)}</td>
+    ${truth ? `<td>${esc(m.category ?? (m.label === true ? 'labeled' : m.label === false ? '-' : ''))}</td>` : ''}
+    <td>${ext(profileUrl(m.id), 'profile')}</td></tr>`).join('')}</table>`;
+}
+
+function timeline(g) {
+  if (!g.timeline.length) return '<p class="sub">No posts.</p>';
+  const first = {};
+  for (const [u, t, s] of g.timeline) if (s && (first[u] === undefined || t < first[u])) first[u] = t;
+  const rows = [...new Set(g.timeline.map(x => x[0]))].sort((a, b) => (first[a] ?? 9e12) - (first[b] ?? 9e12));
+  const shown = rows.slice(0, 80), y = Object.fromEntries(shown.map((u, i) => [u, i]));
+  const ts = g.timeline.map(x => x[1]), t0 = Math.min(...ts), t1 = Math.max(...ts), W = 1000, L = 4, R = 4, rh = 7;
+  const H = shown.length * rh + 24, X = t => L + (t - t0) / Math.max(t1 - t0, 1) * (W - L - R);
+  const dots = g.timeline.filter(x => x[0] in y).sort((a, b) => a[2] - b[2]).map(([u, t, s]) =>
+    `<circle cx="${X(t).toFixed(1)}" cy="${y[u] * rh + 4}" r="${s ? 2.4 : 1.6}" fill="${s ? 'var(--accent)' : '#5a5953'}"><title>${esc(who(g.members[u].id))} ${when(t)}</title></circle>`).join('');
+  const ticks = [0, .25, .5, .75, 1].map(f => { const t = t0 + f * (t1 - t0), x = X(t);
+    return `<line x1="${x}" x2="${x}" y1="0" y2="${H - 18}" stroke="var(--grid)"/><text x="${x}" y="${H - 4}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${when(t).slice(5, 16)}</text>`; }).join('');
+  return `<svg viewBox="0 0 ${W} ${H}" width="100%" style="display:block">${ticks}${dots}</svg>` +
+    (rows.length > shown.length ? `<p class="sub">First ${shown.length} of ${rows.length} accounts shown.</p>` : '');
+}
+
+function heat(h) {
+  const max = Math.max(...h, 1), days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  let s = '<div class="l"></div>' + Array.from({ length: 24 }, (_, i) => `<div class="l">${i % 3 ? '' : i}</div>`).join('');
+  days.forEach((d, di) => { s += `<div class="l">${d}</div>`; for (let i = 0; i < 24; i++) { const v = h[di * 24 + i];
+    s += `<div title="${d} ${i}:00 UTC: ${v} posts" style="background:rgba(217,89,38,${v ? .12 + .88 * v / max : 0.04})"></div>`; } });
+  $('heat').innerHTML = `<div class="heat">${s}</div>`;
+  // quietest 6 hours of the day; if that is night (01–07 local), local time = UTC + (4 - centre)
+  const byHour = Array.from({ length: 24 }, (_, i) => days.reduce((a, _, d) => a + h[d * 24 + i], 0));
+  if (D.end - D.start < 3 * 86400) return $('tz').textContent = 'The data covers less than 3 days, so the quiet hours do not show a time zone.';
+  if (byHour.reduce((a, b) => a + b, 0) < 50) return $('tz').textContent = 'Too few posts to guess a time zone.';
+  let best = 0, bv = Infinity;
+  for (let i = 0; i < 24; i++) { const v = [0, 1, 2, 3, 4, 5].reduce((a, j) => a + byHour[(i + j) % 24], 0); if (v < bv) { bv = v; best = i; } }
+  let off = ((4 - (best + 3)) % 24 + 24) % 24; if (off > 12) off -= 24;
+  const pad = x => String(x).padStart(2, '0');
+  $('tz').textContent = `Quietest 6 hours: ${pad(best)}:00–${pad((best + 6) % 24)}:00 UTC. If that is night, the accounts keep the hours of about UTC${off >= 0 ? '+' : '−'}${Math.abs(off)}. This is a hint, not proof.`;
+}
+
+function viewUser(id) {
+  const e = U[id];
+  if (!e) return $('app').innerHTML = `<p>${esc(id)} is not in a shown group.</p>`;
+  const { m, g } = e, partners = g.edges.filter(x => x.u === id || x.v === id).slice(0, 20);
+  const posts = g.keys.flatMap(k => (k.posts || []).filter(p => p.u === id).map(p => ({ p, k })));
+  $('app').innerHTML = `<p class="sub"><a href="#/${enc(name)}">All groups</a> / <a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a></p>
+    <h1>${esc(who(id))}</h1><p class="mono muted">${esc(id)}</p>
+    <div class="row">${ext(profileUrl(id), 'Open profile')} · ${ext(archive(profileUrl(id)), 'archive')}
+      ${D.platform === 'bluesky' ? ' · ' + ext(`https://plc.directory/${id}/log/audit`, 'handle history') : ''}</div>
+    ${m.gone ? '<p><span class="pill bad">gone from public API</span></p>' : m.name || m.bio ? `<p class="why"><b>${esc(m.name)}</b> ${esc(m.bio)}</p>` : ''}
+    <div class="stats">${m.created ? `<div><b>${esc(m.created)}</b><span>created</span></div><div><b>${num(m.followers)}</b><span>followers</span></div>` : ''}
+      <div><b>${m.posts}</b><span>posts in this data</span></div><div><b>${day(m.first)} → ${day(m.last)}</b><span>active here</span></div>
+      <div><b><a href="#/${enc(name)}/g/${g.g}">Group ${g.g}</a></b><span>${g.size} accounts</span></div></div>
+    <div class="panel scroll"><h2>Closest partners</h2>${pairTable(partners, id)}</div>
+    <div class="panel"><h2>Posts that share a trace</h2><p class="sub">Only posts behind the top traces of the group.</p>
+      ${posts.length ? posts.map(({ p, k }) => `<div class="key"><span class="kind">${esc(keyInfo(k).label)}</span> <a href="${keyHref(k)}">${esc(keyInfo(k).text.slice(0, 80))}</a><div class="posts">${postLine(p)}</div></div>`).join('') : '<p class="sub">None in the top traces.</p>'}</div>`;
+}
+
+function viewKey(kind, key) {
+  const hits = K[kind + '\u0000' + key] || [];
+  if (!hits.length) return $('app').innerHTML = '<p>No group shares this trace.</p>';
+  const i = keyInfo(hits[0].k);
+  $('app').innerHTML = `<p class="sub"><a href="#/${enc(name)}">All groups</a></p>
+    <h1><span class="kind">${esc(i.label)}</span></h1><p class="why">${ext(i.url, esc(i.text))}</p>
+    <p class="sub">Used by ${hits[0].k.fan} scored accounts in all data. ${hits.length} shown group${hits.length > 1 ? 's' : ''} share it.</p>
+    <div class="panel scroll"><table><tr><th>group</th><th>kind / tags</th><th>members who used it</th><th>first → last</th></tr>${hits.map(({ g, k }) => `
+      <tr class="click" onclick="location.hash='#/${enc(name)}/g/${g.g}'"><td class="n">${g.g}</td><td><span class="kind">${esc(g.kind)}</span> ${tagPills(g.tags)}</td>
+      <td class="n">${k.users} of ${g.size}</td><td class="muted">${when(k.t0)} → ${when(k.t1)}</td></tr>`).join('')}</table></div>
+    ${hits.filter(h => h.k.posts).map(({ g, k }) => `<div class="panel"><h2>Posts in group ${g.g}</h2><div class="posts">${k.posts.map(postLine).join('')}</div></div>`).join('')}`;
+}
+
+function viewSearch(s) {
+  s = s.trim().toLowerCase().replace(/^@/, '');
+  if (s.length < 2) return;
+  const acc = Object.values(U).filter(({ m }) => [m.id, m.handle, m.name].some(v => v && String(v).toLowerCase().includes(s))).slice(0, 30);
+  const keys = Object.values(K).map(h => h[0]).filter(({ k }) => [k.key, k.sample, keyInfo(k).text].some(v => v && v.toLowerCase().includes(s))).slice(0, 50);
+  $('app').innerHTML = `<h1>Search: ${esc(s)}</h1>
+    <div class="grid2"><div class="panel hits"><h2>Accounts (${acc.length})</h2>${acc.map(({ m, g }) => `<a href="#/${enc(name)}/u/${enc(m.id)}">${esc(who(m.id))} <span class="muted">${esc(m.name || '')} · group ${g.g}</span></a>`).join('') || '<p class="sub">None.</p>'}</div>
+    <div class="panel hits"><h2>Shared traces (${keys.length})</h2>${keys.map(({ k }) => { const i = keyInfo(k);
+      return `<a href="${keyHref(k)}"><span class="kind">${esc(i.label)}</span> ${esc(i.text.slice(0, 120))} <span class="muted">· ${(K[k.kind + '\u0000' + k.key]).length} group(s)</span></a>`; }).join('') || '<p class="sub">None.</p>'}</div></div>
+    <p class="sub">Search covers the accounts and shared traces of the shown groups only.</p>`;
+}
+
+// ---------- exports ----------
+function download(file, text, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type })); a.download = file; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+const csv = rows => rows.map(r => r.map(v => { v = String(v ?? ''); return /[",\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(',')).join('\n');
+const xml = s => esc(s).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '');
+function exportGroup(g, what) {
+  const base = `${name}-group-${g.g}`;
+  if (what === 'members') download(base + '-members.csv', csv([['id', 'handle', 'name', 'created', 'followers', 'total_posts', 'posts_here', 'first_here', 'last_here', 'gone', 'label', 'category', 'profile_url'],
+    ...g.members.map(m => [m.id, m.handle, m.name, m.created, m.followers, m.total_posts, m.posts, when(m.first), when(m.last), m.gone ? 1 : '', m.label, m.category, profileUrl(m.id)])]), 'text/csv');
+  if (what === 'evidence') download(base + '-evidence.csv', csv([['kind', 'trace', 'members', 'in_all_data', 'account', 'post_id', 'time_utc', 'post_url', 'text'],
+    ...g.keys.flatMap(k => (k.posts || [{}]).map(p => [keyInfo(k).label, k.kind === 'dup' ? k.sample : k.key, k.users, k.fan, p.u, p.id, p.ts && when(p.ts), p.id && postUrl(p.id, p.u), p.text]))]), 'text/csv');
+  if (what === 'graphml') {
+    const attrs = ['w', 'dup', 'item', 'tgt', 'fast', 'sched'];
+    download(base + '.graphml', `<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns">
+<key id="label" for="node" attr.name="label" attr.type="string"/><key id="handle" for="node" attr.name="handle" attr.type="string"/>
+<key id="known" for="node" attr.name="known" attr.type="string"/>
+${attrs.map(a => `<key id="${a}" for="edge" attr.name="${a}" attr.type="double"/>`).join('')}
+<graph id="${xml(base)}" edgedefault="undirected">
+${g.members.map(m => `<node id="${xml(m.id)}"><data key="label">${xml(who(m.id))}</data><data key="handle">${xml(m.handle || '')}</data><data key="known">${xml(m.category ?? m.label ?? '')}</data></node>`).join('\n')}
+${g.edges.map(e => `<edge source="${xml(e.u)}" target="${xml(e.v)}">${attrs.map(a => `<data key="${a}">${e[a]}</data>`).join('')}</edge>`).join('\n')}
+</graph></graphml>`, 'application/xml');
+  }
+  if (what === 'json') download(base + '.json', JSON.stringify({ dataset: D.name, source: D.source, generated: D.generated, platform: D.platform,
+    method: 'Accounts are linked by rare shared traces (same text, links, hashtags, mentions, reposts, reply targets, posts within 60 s), weighted by weekly schedule similarity, then grouped with Leiden clustering. It flags behavior, not opinions.',
+    group: g }, null, 1), 'application/json');
+}
+
+// ---------- routing ----------
+async function route() {
+  if (!window.DATASETS) await script('datasets.js').catch(() => {});
+  const list = window.DATASETS || [];
+  if (!list.length) return $('app').innerHTML = 'No data. Run <code>uv run osint_site.py bluesky "data/live/*.parquet" 3</code>.';
+  const [, ds, view, a, ...b] = location.hash.split('/');
+  const want = ds ? decodeURIComponent(ds) : list[0];
+  if (want !== name) {
+    D = await load(want); name = want; index();
+    $('ds').innerHTML = list.map(n => `<option ${n === name ? 'selected' : ''}>${esc(n)}</option>`).join('');
+  }
+  scrollTo(0, 0);
+  if (view !== 's') $('q').value = '';
+  if (view === 'g') viewGroup(a);
+  else if (view === 'u') viewUser(decodeURIComponent(a));
+  else if (view === 'k') viewKey(a, decodeURIComponent(b.join('/')));
+  else if (view === 's') { $('q').value = decodeURIComponent(a); viewSearch(decodeURIComponent(a)); }
+  else viewList();
+}
+$('ds').onchange = () => location.hash = '#/' + enc($('ds').value);
+$('q').onkeydown = e => { if (e.key === 'Enter' && $('q').value.trim()) location.hash = `#/${enc(name)}/s/${enc($('q').value.trim())}`; };
+if (!/\/osint\/(index\.html)?$/.test(location.pathname)) $('home').remove();  // only on the public site (docs/osint/)
+addEventListener('hashchange', route);
+route().catch(e => $('app').textContent = 'Could not load the data: ' + e);
+</script>
+</body>
+</html>

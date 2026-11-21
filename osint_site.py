@@ -166,7 +166,12 @@ def why(n, k, sched, density, tags, members):
                     "template-bio": "the bios are near-identical",
                     "blank-profiles": "most profiles have no name and no bio",
                     "gone-accounts": "many accounts are now deleted or taken down",
-                    "likely-community": "old accounts with varied bios: this looks like a real community"})
+                    "likely-community": "old accounts with varied bios: this looks like a real community",
+                    "own-domain": "most links go to one site that almost no one else links",
+                    "no-sleep": "the accounts post through the night, with no quiet hours",
+                    "high-volume": "the accounts post 50 or more times a day and have few followers",
+                    "disclosed": "most bios say the accounts are bots or automated feeds",
+                    "hidden": "3 or more bot signs, and the bios do not say they are bots"})
     t = [notes[x] for x in tags if x in notes]
     if t:
         s += " Account facts: " + "; ".join(t) + "."
@@ -181,7 +186,7 @@ def main():
     top = int(sys.argv[5]) if len(sys.argv) > 5 else TOP
     con, cl, member = detect.detect(src, min_posts, resolution)
     if any(str(u).startswith("did:") for u in list(member)[:100]):
-        cl = detect.tags(cl, member, top)
+        cl = detect.tags(cl, member, top, con=con)
     kd = detect.kinds(con, cl, top)
     print("wrote", write(con, cl, member, name, src, top, kd))
 

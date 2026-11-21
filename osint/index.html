@@ -60,6 +60,7 @@ svg text { fill: var(--t3); font-size: 11px; }
 <header><div class="wrap">
   <a class="brand" href="#">Behind the <span>Accounts</span></a>
   <select id="ds" aria-label="Dataset"></select>
+  <a id="home" href="../" style="white-space:nowrap">Project site</a>
   <input id="q" type="search" placeholder="Search a handle, DID, link, #hashtag or text" aria-label="Search">
 </div></header>
 <div class="notice"><div class="wrap">This tool flags coordinated behavior, not opinions. A group can be a real community. Open each post at its source and decide yourself.</div></div>
@@ -154,7 +155,7 @@ function viewList() {
   $('rows').addEventListener('click', e => { const tr = e.target.closest('tr'); if (tr) location.hash = `#/${enc(name)}/g/${tr.dataset.g}`; });
   draw();
 }
-const tagPills = t => t.map(x => `<span class="pill ${x === 'likely-community' ? 'ok' : 'bad'}">${esc(x)}</span>`).join(' ');
+const tagPills = t => t.map(x => `<span class="pill ${['likely-community', 'disclosed'].includes(x) ? 'ok' : 'bad'}">${esc(x)}</span>`).join(' ');
 
 function viewGroup(n) {
   const g = D.groups.find(x => x.g === +n);
@@ -341,6 +342,7 @@ async function route() {
 }
 $('ds').onchange = () => location.hash = '#/' + enc($('ds').value);
 $('q').onkeydown = e => { if (e.key === 'Enter' && $('q').value.trim()) location.hash = `#/${enc(name)}/s/${enc($('q').value.trim())}`; };
+if (!/\/osint\/(index\.html)?$/.test(location.pathname)) $('home').remove();  // only on the public site (docs/osint/)
 addEventListener('hashchange', route);
 route().catch(e => $('app').textContent = 'Could not load the data: ' + e);
 </script>
