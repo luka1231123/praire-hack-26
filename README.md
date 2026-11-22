@@ -1,163 +1,51 @@
 # PropNET
 
-Finds groups of accounts that act together (troll farms, state operators, spam networks).
-Detection uses no text model. AI can rewrite the words, but operators still share **behavior**:
-the same reply targets, the same timing, the same links and hashtags, the same template
-text, and the same work schedule.
+**PropNET** finds coordinated political posting groups across Telegram, X, and Bluesky by looking at posting behavior — shared links, timing, cross-channel scripts, exclusive domains, and 24-hour posting schedules — instead of guessing from writing style.
 
-## How it works
+See [DEMO.md](DEMO.md) for the 4-minute presentation script, [EXAMPLES.md](EXAMPLES.md) for six verified real-world examples, and `docs/index.html` for the interactive report and browser-based Investigator.
 
-1. Every post goes into one table: `platform, post_id, user_id, ts, text, reply_to, thread, label, items`.
-2. `detect.py` scores each pair of users on shared keys. Popular keys count less (weight `1/(users-1)`):
-   - `dup`: the same text after normalizing (case, links, digits, punctuation, emoji)
-   - `item`: the same link, `#hashtag`, `@mention`, or repost
-   - `tgt`: replies to the same message
-   - `fast`: the same key within 60 s
-   - `sched`: similar weekly activity pattern (168 hour buckets)
-3. Leiden clustering finds tight groups. Groups are ranked by shared content per member.
-4. Each group gets a **kind**: `political`, `scam`, `porn` or `other` (see below).
-5. An HTML report lists each group with its kind, members and top shared evidence.
+## Verified Results
 
-## Group kind
+| Archive | Raw Posts | Political Kept | Flagged Groups (Accounts) | Check Against Outside Labels *(never used during detection)* |
+|---|---:|---:|---:|---|
+| **Telegram war chats** ([EPFL / USENIX '25](https://www.usenix.org/conference/usenixsecurity25/presentation/kireev)) | 17,310,897 | 2,624,724 | 819 (3,893) | **97.46% precision** (`3,794/3,893`: `3,775` pro-Russian, `19` pro-Ukrainian) · **9.5×** the `10.28%` baseline |
+| **Russian troll accounts on X** ([Clemson / 538](https://github.com/fivethirtyeight/russian-troll-tweets)) | 2,946,207 | 584,815 | 48 (1,456) | **99.24% role purity** (`RightTroll`, `LeftTroll`, `NonEnglish`, etc. separated without seeing tags) |
+| **Bluesky public captures** (2026 live) | 2,274,195 | 387,007 | 22 (128) | **Unattributed leads:** `2` exclusive-site rings (`nextstamina.com`, `briefly.co`), `12` fast-repost rings, `8` news mirrors |
+| **Total** | **22,531,299** | **3,596,546** | **889 (5,477)** | Top `112` profiled groups (`45` Telegram, `45` X, `22` Bluesky) bundled in `docs/site-data.js` |
 
-Detection finds all coordinated groups, so spam networks come out next to state operators.
-A small multilingual embedding model ([model2vec](https://github.com/MinishLab/model2vec) `potion-multilingual-128M`, numpy only)
-sorts them. It runs only after detection, on up to 200 posts per group.
+## Run Locally (3 Commands)
 
-- Each post votes for the class of its closest prototype sentence (`PROTOTYPES` in `detect.py`).
-  A post votes only when one class is clearly closest (cosine margin 0.05).
-- Links to porn hosts (onlyfans, fansly, ...) or scam hosts (casino, airdrop, gofundme, ...) add to that class.
-- The group kind is the flagged class with the largest share, if the share is 15% or more. Else it is `other`.
-- Hover the kind cell in the report to see the vote shares.
-
-The kind tells the topic only. A `political` group can be real activists. Evidence for a state operator
-is the schedule signal and the labels. To add a class or fix a miss, add a prototype sentence.
-
-| Data      | Result |
-|-----------|--------|
-| Telegram  | 1,033 of 1,035 labeled propaganda users are in `political` groups. `other` groups are 0.4% labeled. |
-| X (IRA)   | 1,563 of 1,762 troll users are `political`. 79 of 83 HashtagGamer (word games) are `other`. |
-| Bluesky   | Finds porn, Korean porn spam, donation-begging spam and affiliate spam. Errors: flight-tracker bots as `scam`, webcam feeds as `porn`. |
-
-## Hidden bots (Bluesky)
-
-Most bot groups say that they are bots. `tags()` in `detect.py` keeps those apart from bots that hide.
-It uses public account facts and the posts themselves:
-
-- `disclosed`: half the bios say bot, automated, RSS, "same content as" or "official account is". Ranked down.
-- `likely-community`: old accounts with real, varied bios. Ranked down.
-- Hidden signals: `new-accounts` (made in the same 2 weeks, recently), `template-bio`, `same-name`, `blank-profiles`,
-  `high-volume` (50+ posts a day since sign-up, under 100 followers), `own-domain` (half the group's links go to
-  one host that 3 or fewer outside users link), `no-sleep` (the quietest 6 hours of the day hold 15%+ of posts).
-- `hidden`: 3 or more hidden signals and not `disclosed`. Ranked first.
-
-On the Bluesky backfill (2101 accounts, Oct 27 – Nov 10 2026), the only `hidden` group is 4 news accounts
-(readgrid, news-wire, kitepost, nextstamina.com) that are 1 month old and post the same text with nextstamina.com links.
-Not used: paraphrased text (the same headline rewritten by an LLM), and likes or replies received.
-
-## Result on the Telegram dataset
-
-The data has 17.3M comments from 13 Russian channels, and 15,856 accounts are labeled as propaganda accounts.
-Users with 20 or more posts are scored. Of these, 3.1% are labeled.
-
-| Groups         | Users | Labeled |
-|----------------|------:|--------:|
-| top 10         |   655 |   46.4% |
-| top 50         | 1,231 |   52.6% |
-| top 200        | 2,540 |   41.3% |
-
-That is about 16× the base rate. The top groups also hold unlabeled networks, for example
-accounts that post emoji-prefixed template talking points, and copypasta written with mixed Latin and Cyrillic letters.
-
-## Result on X (Twitter) troll data
-
-[FiveThirtyEight russian-troll-tweets](https://github.com/fivethirtyeight/russian-troll-tweets): 2.9M tweets
-from 2,843 accounts of the Russian Internet Research Agency (IRA), each with a category
-(RightTroll, LeftTroll, NewsFeed, HashtagGamer, Fearmonger, NonEnglish, ...).
-All accounts are trolls, so the test is: do the found groups match the real categories?
-
-The found groups are **91% pure** by category, against 55% for random groups of the same sizes (resolution 5).
-Examples: one group is 79 of 80 HashtagGamer accounts, one is 104 of 104 RightTroll, one is 33 of 33 NewsFeed.
-One group of 207 mixes LeftTroll and RightTroll accounts that amplified the same content.
-
-Lift of each signal for one pair of users (both users labeled, against 0.7% for a random pair):
-the same text is 94×, the same link or tag is 9×, and the same reply targets are about 5×.
-
-Tested and not used (Telegram labels, user base rate 3.1%):
-- `style`, the same emoji sequence (2 or more emoji), with flags for a leading emoji and mixed Latin/Cyrillic words:
-  key users are 0–4% labeled. Leading-emoji and mixed-script keys are about 0%. Same-text (`dup`) keys are 62–88%.
-- `dom`, the same link host: key users are 1–13% labeled. It adds almost no pairs that `item` does not find.
-
-## Run
-
-Needs [uv](https://docs.astral.sh/uv/).
-
-Telegram (offline test against labels):
+Requires Python 3.11+ and `uv`. The project uses two Python scripts (`ingest.py`, `detect.py`) and one static webpage (`docs/index.html`).
 
 ```bash
-uv run ingest.py telegram dataset_v2.csv   # CSV to data/posts.parquet (about 5 s)
-uv run detect.py                           # data/report.html (about 70 s)
+# 1. Import and filter each archive (.csv, .csv.zst, or Parquet -> data/focused/<platform>.parquet)
+uv run --locked ingest.py telegram && uv run --locked ingest.py x && uv run --locked ingest.py bluesky
+
+# 2. Detect coordinated groups and export JSON, HTML, and the website data file
+uv run --locked detect.py --json data/influence_report.json --site docs/site-data.js
+
+# 3. Serve the interactive report and Investigator locally
+python3 -m http.server 8765 -d docs
 ```
 
-X troll data (offline test against categories):
+Open `http://localhost:8765`. You can also import `data/influence_report.json` directly in the browser to view unaliased Telegram and Bluesky account IDs (the bundled `docs/site-data.js` replaces them with `TG-####` and `BS-####` while keeping public X troll handles as published).
 
-```bash
-mkdir -p data/x_ira && cd data/x_ira && for i in $(seq 1 13); do curl -sSfLO "https://raw.githubusercontent.com/fivethirtyeight/russian-troll-tweets/master/IRAhandle_tweets_$i.csv"; done && cd ../..
-uv run ingest.py x "data/x_ira/*.csv"      # data/posts_x.parquet (about 2 s)
-uv run detect.py data/posts_x.parquet 20 5 # data/report_x.html (about 5 s)
-```
+## How It Works — and Why Behavior + Leiden
 
-Bluesky (live, free, no key):
+1. **Filter out noise (`ingest.py`):** Keeps English, Russian, and Ukrainian political/war posts (plus Bluesky reposts of kept originals) while dropping porn domains, adult spam, and crypto/casino promos (`22.53M -> 3.60M`, `15.96%`).
+2. **Link repeating account pairs (`detect.py`):** Active accounts (`>=5` political posts) are linked only when they match on **`>=2` separate posts** for a link or text shared by **`2–100` accounts** (ignoring viral breaking news):
+   - Same web link (excluding shorteners) or identical text (`>=35` chars, `>=5` words) within **5 minutes**.
+   - Same Bluesky repost within **15 seconds**.
+   - Identical long Telegram message (`>=60` chars, `>=6` words) posted across different channels, regardless of delay.
+3. **Group with Leiden:** Leiden grouping splits the pair graph (`resolution=0.25`, pair weight capped at `8`, `>=3` accounts) into tight teams without merging loosely linked bystanders into one giant blob. Each group is then summarized by rewritten link bursts (`<=60s` same-link pairs sharing `10%–82%` of words), website exclusivity (`0` outside posters), and 24-hour UTC posting schedules.
 
-```bash
-uv run monitor.py                 # data/live_report.html, refreshed every 5 min
-WINDOW_H=48 uv run monitor.py     # keep 48 hours of data instead of 24
-uv run backfill.py 2026-10-27 2026-11-10       # 2 weeks of past posts from seed accounts in data/backfill/
-uv run detect.py "data/backfill/*.parquet"     # data/report_backfill.html (about 7 s)
-```
+**Why this approach works better than alternatives:**
+- **Over AI-text detectors:** Style detectors misfire on normal human writing and break when prompts change. Tracking shared links and sub-second timing caught **Bluesky Group #20** (`nextstamina.com`) posting two completely different summaries of the Van Hollen–Schumer story (**only 34% word overlap**) just **99 milliseconds apart**, plus a Santa Clarita arrest story **2 milliseconds apart**.
+- **Over exact copy-paste filters:** Copy-paste filters miss any manual or AI rewrite. Behavior rules caught both the 2026 Bluesky ring and the 2016 Russian troll pair in **X Group #858** (`blmsoldier` & `robertebonyking`), who reworded *"There is no right to vote in the Constitution"* **60 seconds apart** while linking the same page.
+- **Over black-box classifiers:** Opaque scores are hard to audit and can absorb political bias. Transparent rules show every matching post, link, and timestamp — catching both a 93-account pro-Russian Telegram farm (**Group #25**) and an 18-account pro-Ukrainian ring (**Group #686**), plus an unlabeled 3-account Telegram group (**Group #836**) that hid **17 Latin lookalike letters** inside Cyrillic words.
 
-The monitor reads the Bluesky Jetstream firehose (about 40 posts/s) and keeps a rolling 24-hour window in `data/live/`.
+## Limits and Attribution
 
-## Investigator site (OSINT)
-
-A local site for checking groups by hand. It has one page per group with the reason for the flag, the shared
-traces, a link to each source post (and a Wayback Machine link), a timeline, a weekly schedule with a time-zone hint,
-and the members with their public account facts. You can click a link, hashtag or reply target to see every
-group that shares it, and you can search a handle, DID, link or text. Each group exports to CSV, GraphML (Gephi, Maltego) and JSON.
-
-```bash
-uv run osint_site.py bluesky "data/live/*.parquet" 3      # also refreshed every 5 min by monitor.py
-uv run osint_site.py iowa "data/backfill/*.parquet" 5
-uv run osint_site.py x data/posts_x.parquet 20 5
-python3 -m http.server 8765 -d data/site                   # open http://localhost:8765
-```
-
-It writes to `data/site/` (not in git), because it holds real account IDs. The page itself is `osint/index.html`.
-The investigator is the home page of the public website (`docs/index.html`), with a fixed data snapshot in `docs/` (made 2026-11-21).
-To update it, run `cp data/site/* docs/`.
-It flags behavior, not opinions: a person checks the posts and decides.
-
-## Website
-
-`docs/` is the website (GitHub Pages: Settings → Pages → main, `/docs`). The home page is the investigator.
-The site has three pages: Explore (`docs/index.html`, a copy of `osint/index.html`), Results (`docs/results.html`, charts per dataset from `docs/data.js`) and Method (`docs/method.html`). `docs/about.html` redirects to Method. `docs/data.js` starts with the numbers above; to fill every chart, export each dataset:
-
-```bash
-uv run export_site.py telegram data/posts.parquet 20 0.2
-uv run export_site.py x data/posts_x.parquet 20 5
-uv run export_site.py bluesky "data/live/*.parquet" 3     # optional, from monitor.py
-```
-
-Only summary numbers are written (no user IDs; evidence text is cut to 120 characters).
-
-## Dataset
-
-`dataset_v2.csv` (3.9 GB) is not in git. It is too large for GitHub, and it holds Telegram user data.
-
-Download: [dataset_v2.zip on Zenodo](https://zenodo.org/records/14736756/files/dataset_v2.zip?download=1) (record: https://zenodo.org/records/14736756)
-
-Unzip it and put `dataset_v2.csv` in the repo root. `.gitignore` keeps it and `data/` out of commits.
-
-Source: Kireev et al. (EPFL), "Characterizing and Detecting Propaganda-Spreading Accounts on Telegram", USENIX Security 2025.
-
-Columns: `message_id, date, from_id, reply_to_message_id, text, channel, source, ru_pa, deleted, topic, ua_pa, reply_count`
+- **Coordinated behavior does not prove who runs an account.** Shared links, timing, and scripts show shared tooling or instructions; attributing an operator to a state or organization requires outside evidence. PropNET keeps behavior summaries and outside labels strictly separate.
+- **Archive caveats:** The [FiveThirtyEight X archive](https://github.com/fivethirtyeight/russian-troll-tweets) contains only known Russian troll accounts (no normal-user control group). The [Zenodo Telegram dataset](https://zenodo.org/records/14736756) used repeated text as one input when researchers built its labels. Bluesky captures have no outside attribution, and older backfill timestamps may be off by 1 hour for daylight saving time.
+- **What can evade detection:** A campaign that rewrites every post with AI *and* avoids sharing links, rapid reposts, or cross-channel scripts can bypass these rules.
